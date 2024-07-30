@@ -10,9 +10,13 @@
         "laravel/framework": "^11.9",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
+        "spatie/laravel-queueable-action": "^2.15",
+        "spekulatius/phpscraper": "^3.0",
         "tightenco/ziggy": "^2.0"
     },
     "require-dev": {
+        "ahuggins/open-on-make": "^0.0.13",
+        "barryvdh/laravel-debugbar": "^3.13",
         "fakerphp/faker": "^1.23",
         "laravel/breeze": "^2.0",
         "laravel/pint": "^1.13",
