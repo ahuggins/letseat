@@ -10,7 +10,7 @@ export default function ExternalLinkRow({
         <div className="flex gap-3  my-3">
             {siteLink && <External link={siteLink}>{name}</External>}
             {originalLink && (
-                <External link={originalLink}>Original Recipe Link</ExGternal>
+                <External link={originalLink}>Original Recipe Link</External>
             )}
             {additional}
         </div>
