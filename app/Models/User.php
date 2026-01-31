@@ -3,11 +3,12 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use BeyondCode\Comments\Contracts\Commentator;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements Commentator
 {
     use HasFactory, Notifiable;
 
@@ -43,5 +44,16 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Check if a comment for a specific model needs to be approved.
+     * From BeyondCode\Laravel-comments package
+     *
+     * @param  mixed  $model
+     */
+    public function needsCommentApproval($model): bool
+    {
+        return false;
     }
 }

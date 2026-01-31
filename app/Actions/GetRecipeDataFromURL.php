@@ -4,6 +4,7 @@ namespace App\Actions;
 
 use Spatie\QueueableAction\QueueableAction;
 use Spekulatius\PHPScraper\PHPScraper as Scraper;
+use Symfony\Component\DomCrawler\Crawler;
 
 class GetRecipeDataFromURL
 {
@@ -13,6 +14,7 @@ class GetRecipeDataFromURL
 
     public function __construct($url)
     {
+
         $this->url = $url;
     }
 
@@ -22,17 +24,76 @@ class GetRecipeDataFromURL
 
         $scraper->go($this->url);
 
-        $json = $scraper->filter("//*[@type='application/ld+json']")->text();
+        // dd($scraper->go($this->url));
+
+        $what = $scraper->filter("//*[@type='application/ld+json']")->reduce(function (Crawler $node, $i): bool {
+
+            // dump($i);
+
+            // if ($i === 1) {
+
+            $content = json_decode($node->text());
+
+            $content = property_exists($content, '@graph') ? $content->{'@graph'} : $content;
+
+            // dump($content);
+
+            $hasRecipe = false;
+
+            if (is_array($content)) {
+                $hasRecipe = count(array_filter($content, fn ($node) => $node->{'@type'} === 'Recipe')) > 0;
+            } else {
+                $hasRecipe = $content->{'@type'} === 'Recipe';
+            }
+            // }
+
+            // dump($hasRecipe, 'hasReceipe');
+
+            return $hasRecipe;
+        });
+
+        // dd($what->text(), 'the recipe');
+
+        $json = $what->text();
+
+        // dd($json);
 
         $data = $scraper->parseJson($json);
 
+        // dd($data);
+
+        if (array_key_exists('@graph', $data)) {
+
+            $recipeMeta = array_filter($data['@graph'], fn ($node) => $node['@type'] === 'Recipe');
+            $recipeMeta = array_pop($recipeMeta);
+            // dump($recipeMeta);
+            // dd(json_encode($recipeMeta));
+
+            return [
+                'url' => $this->url,
+                'name' => $recipeMeta['name'],
+                'ingredients' => json_encode($recipeMeta['recipeIngredient']),
+                'directions' => json_encode($recipeMeta['recipeInstructions']),
+                'content' => json_encode($data),
+                'nutrition' => array_key_exists('nutrition', $recipeMeta) ? json_encode($recipeMeta['nutrition']) : json_encode(''),
+            ];
+        }
+
+        // dd($data, 'PASSED @graph');
+
+        // $graph = collect($data['@graph']);
+
+        // $recipe = $graph->first(function ($node) {
+        //     return $node['@type'] === 'Recipe';
+        // });
+
         return [
             'url' => $this->url,
-            'name' => $data['@graph'][0]['headline'],
-            'ingredients' => json_encode($data['@graph'][6]['recipeIngredient']),
-            'directions' => json_encode($data['@graph'][6]['recipeInstructions']),
+            'name' => $data['name'],
+            'ingredients' => json_encode($data['recipeIngredient']),
+            'directions' => json_encode($data['recipeInstructions']),
             'content' => json_encode($data),
-            'nutrition' => json_encode($data['@graph'][6]['nutrition']),
+            'nutrition' => array_key_exists('nutrition', $data) ? json_encode($data['nutrition']) : json_encode(''),
         ];
     }
 }

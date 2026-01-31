@@ -1,17 +1,24 @@
 import ExternalLink from "../Icons/ExternalLink";
 
-export default function ExternalLinkRow({ siteLink, recipe, originalLink }) {
+export default function ExternalLinkRow({
+    name,
+    siteLink,
+    originalLink,
+    additional = null,
+}: any) {
     return (
-        <div className="flex gap-3 justify-between my-3">
-            <External link={siteLink}>
-                {recipe.content["@graph"][5].name}
-            </External>
-            <External link={originalLink}>Original Recipe Link</External>
+        <div className="flex gap-3  my-3">
+            {siteLink && <External link={siteLink}>{name}</External>}
+            {originalLink && (
+                <External link={originalLink}>Original Recipe Link</ExGternal>
+            )}
+            {additional}
         </div>
     );
 }
 
-function External({ link, children }) {
+function External({ link, children }: any) {
+    if (!children) return null;
     return (
         <a
             href={link}

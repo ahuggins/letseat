@@ -17,5 +17,7 @@ class RecipeController extends Controller
 
         $recipe = $action->execute($request->input('url'), auth()->user()->id);
 
+        return redirect('/recipes');
+
     }
 }

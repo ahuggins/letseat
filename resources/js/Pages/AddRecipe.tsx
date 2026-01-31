@@ -10,7 +10,7 @@ export default function AddRecipe({ auth }: PageProps) {
         email: "",
     });
 
-    function handleChange(e) {
+    function handleChange(e: any) {
         const key = e.target.id;
         const value = e.target.value;
         setValues((values) => ({
@@ -19,10 +19,10 @@ export default function AddRecipe({ auth }: PageProps) {
         }));
     }
 
-    async function handleSubmit(e) {
+    async function handleSubmit(e: any) {
         e.preventDefault();
         let response = await router.post("/recipe", values);
-        console.log({ response });
+        // console.log({ response });
     }
 
     return (

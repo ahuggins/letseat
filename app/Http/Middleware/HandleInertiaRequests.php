@@ -17,7 +17,7 @@ class HandleInertiaRequests extends Middleware
     /**
      * Determine the current asset version.
      */
-    public function version(Request $request): string|null
+    public function version(Request $request): ?string
     {
         return parent::version($request);
     }
@@ -29,11 +29,17 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        return [
-            ...parent::share($request),
+        return array_merge(parent::share($request), [
+            'environment' => app()->environment(),
             'auth' => [
                 'user' => $request->user(),
             ],
-        ];
+        ]);
+        // return [
+        //     ...parent::share($request),
+        //     'auth' => [
+        //         'user' => $request->user(),
+        //     ],
+        // ];
     }
 }

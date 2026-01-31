@@ -4,8 +4,18 @@ import { Head, Link } from "@inertiajs/react";
 import { PageProps } from "@/types";
 import ExternalLinkRow from "@/Components/Recipe/ExternalLinkRow";
 import AddedBy from "@/Components/Recipe/AddedBy";
+import CommentIcon from "@/Components/Icons/CommentIcon";
+import { formatRecipe } from "./recipe-functions";
+import Pagination from "./Pagination";
+import ApplicationLogo from "@/Components/ApplicationLogo";
 
-export default function Recipes({ auth, recipes }: PageProps) {
+export default function Recipes({
+    auth,
+    recipes,
+}: {
+    auth: any;
+    recipes: any;
+}) {
     return (
         <AuthenticatedLayout
             user={auth.user}
@@ -19,29 +29,49 @@ export default function Recipes({ auth, recipes }: PageProps) {
 
             <div className="py-4">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                    <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-t-lg">
                         <div className="flex p-4 gap-4 flex-col">
-                            {recipes.map((recipe, index) => (
+                            {recipes.data.map((recipe: any, index: any) => (
                                 <RecipePreview recipe={recipe} key={index} />
                             ))}
                         </div>
                     </div>
+                    <Pagination paginated={recipes} />
                 </div>
             </div>
         </AuthenticatedLayout>
     );
 }
 
-function RecipePreview({ recipe }) {
-    const originalLink = recipe.content["@graph"][1]["@id"];
-    const siteLink = recipe.content["@graph"][4].url;
-    const recipeLink = `/recipe/${recipe.id}`;
+function RecipePreview({ recipe }: any) {
+    const {
+        originalLink,
+        siteLink,
+        recipeLink,
+        graph,
+        jsonRecipe,
+        name,
+        description,
+    } = formatRecipe(recipe);
+    console.log({ siteLink, originalLink, name: recipe.name });
     return (
         <div className="bg-white p-4 flex gap-4 rounded-lg">
             <div className="w-72 h-72 flex-shrink-0">
-                <Link href={recipeLink}>
-                    <img src={recipe.content["@graph"][6].image[1]} alt="" />
-                </Link>
+                {jsonRecipe.hasOwnProperty("image") ? (
+                    <Link href={recipeLink}>
+                        <img
+                            src={
+                                typeof jsonRecipe.image[0] === "string"
+                                    ? jsonRecipe.image[0]
+                                    : jsonRecipe.image[0].url
+                            }
+                            alt=""
+                            className="h-full w-full object-cover"
+                        />
+                    </Link>
+                ) : (
+                    <ApplicationLogo color="orange" size="w-full" />
+                )}
             </div>
             <div className="flex flex-col justify-between">
                 <div>
@@ -55,16 +85,18 @@ function RecipePreview({ recipe }) {
                         </Link>
                     </div>
                     <ExternalLinkRow
-                        recipe={recipe}
+                        name={name}
                         siteLink={siteLink}
                         originalLink={originalLink}
                     />
-                    <div className="text-xl text-slate-700">
-                        {recipe.content["@graph"][1].description}
-                    </div>
+                    <div className="text-xl text-slate-700">{description}</div>
                 </div>
-                <div>
+                <div className="flex items-center gap-4 text-sm">
                     <AddedBy recipe={recipe} />
+                    <div className="flex items-center gap-2">
+                        <CommentIcon />
+                        {recipe.comments.length}
+                    </div>
                 </div>
             </div>
         </div>

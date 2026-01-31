@@ -1,6 +1,6 @@
 import { Link } from "@inertiajs/react";
 
-export default function AddedBy({ recipe }) {
+export default function AddedBy({ recipe }: any) {
     return (
         <Link
             href={`/recipes?user=${recipe.user.id}`}

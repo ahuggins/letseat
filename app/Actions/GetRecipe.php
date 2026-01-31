@@ -13,9 +13,13 @@ class GetRecipe
     {
         $dataAction = new GetRecipeDataFromURL($url);
 
-        $recipe = new Recipe($dataAction->execute());
+        $data = $dataAction->execute();
+
+        $recipe = new Recipe($data);
 
         $recipe->user_id = $user_id;
+
+        $recipe->slug = $data['name'];
 
         $recipe->save();
 
