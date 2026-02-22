@@ -39,6 +39,14 @@ Route::get('/recipe/{recipe:slug}', function (App\Models\Recipe $recipe) {
     return Inertia::render('Recipe', ['recipe' => $recipe]);
 })->middleware(['auth', 'verified'])->name('recipe');
 
+Route::get('/search', function (Request $request) {
+    $recipes = App\Models\Recipe::search($request->query('q'))->options([
+        'query_by' => 'name,ingredients',
+    ])->paginate();
+
+    return Inertia::render('Search', ['recipes' => ['data' => $recipes]]);
+})->middleware(['auth', 'verified'])->name('search');
+
 // Route::delete('/recipe/{recipe:slug}', function (App\Models\Recipe $recipe) {
 //     if (auth()->user()->email !== 'andrewhuggins@gmail.com') {
 //         return;
