@@ -3,7 +3,7 @@ import ApplicationLogo from "@/Components/ApplicationLogo";
 import Dropdown from "@/Components/Dropdown";
 import NavLink from "@/Components/NavLink";
 import ResponsiveNavLink from "@/Components/ResponsiveNavLink";
-import { Link } from "@inertiajs/react";
+import { Link, router } from "@inertiajs/react";
 import { User } from "@/types";
 
 export default function Authenticated({
@@ -11,6 +11,7 @@ export default function Authenticated({
     header,
     children,
 }: PropsWithChildren<{ user: User; header?: ReactNode }>) {
+    const searchParams = new URLSearchParams(window.location.search);
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
 
@@ -97,7 +98,7 @@ export default function Authenticated({
                             <button
                                 onClick={() =>
                                     setShowingNavigationDropdown(
-                                        (previousState) => !previousState
+                                        (previousState) => !previousState,
                                     )
                                 }
                                 className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-900 focus:text-gray-500 dark:focus:text-gray-400 transition duration-150 ease-in-out"
@@ -191,8 +192,29 @@ export default function Authenticated({
 
             {header && (
                 <header className="bg-white dark:bg-gray-800 shadow">
-                    <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                        {header}
+                    <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8  flex justify-between items-center">
+                        <div>{header}</div>
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault();
+
+                                const formData = new FormData(e.target);
+
+                                const formValues = Object.fromEntries(
+                                    formData.entries(),
+                                );
+
+                                router.replace("/search", { data: formValues });
+                            }}
+                        >
+                            <input
+                                type="text"
+                                name="q"
+                                placeholder="Search"
+                                className="rounded-md"
+                                defaultValue={searchParams?.get("q") || ""}
+                            />
+                        </form>
                     </div>
                 </header>
             )}
