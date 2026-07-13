@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use BeyondCode\Comments\Traits\HasComments;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +10,7 @@ use Laravel\Scout\Searchable;
 
 class NewRecipe extends Model
 {
-    use HasComments, HasFactory, Searchable;
+    use HasFactory, Searchable;
 
     protected $guarded = [];
 
@@ -27,6 +26,32 @@ class NewRecipe extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function comments()
+    {
+        return $this->morphMany(Comment::class, 'commentable');
+    }
+
+    public function favoritedBy()
+    {
+        return $this->belongsToMany(User::class, 'new_recipe_favorites')
+            ->withTimestamps();
+    }
+
+    public function madeBy()
+    {
+        return $this->belongsToMany(User::class, 'new_recipe_mades')
+            ->withTimestamps();
+    }
+
+    public function commentAsUser(User $user, string $comment): Comment
+    {
+        return $this->comments()->create([
+            'user_id' => $user->id,
+            'comment' => $comment,
+            'is_approved' => true,
+        ]);
     }
 
     public function toSearchableArray()

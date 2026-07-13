@@ -3,12 +3,11 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use BeyondCode\Comments\Contracts\Commentator;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable implements Commentator
+class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
@@ -55,5 +54,17 @@ class User extends Authenticatable implements Commentator
     public function needsCommentApproval($model): bool
     {
         return false;
+    }
+
+    public function favoriteRecipes()
+    {
+        return $this->belongsToMany(NewRecipe::class, 'new_recipe_favorites')
+            ->withTimestamps();
+    }
+
+    public function madeRecipes()
+    {
+        return $this->belongsToMany(NewRecipe::class, 'new_recipe_mades')
+            ->withTimestamps();
     }
 }

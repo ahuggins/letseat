@@ -10,16 +10,25 @@ export default function Recipes({
     auth,
     recipes,
     categories: categoryOptions,
+    cuisines: cuisineOptions,
     filters,
+    pageTitle = "Recipes",
+    emptyMessage = "No recipes matched your filters.",
 }: {
     auth: any;
     recipes: any;
     categories: string[];
-    filters: { q?: string; category?: string; user?: string | null };
+    cuisines: string[];
+    filters: { q?: string; category?: string; cuisine?: string; user?: string | null };
+    pageTitle?: string;
+    emptyMessage?: string;
 }) {
     const [searchQuery, setSearchQuery] = useState(filters?.q ?? "");
     const [activeCategory, setActiveCategory] = useState(
         filters?.category ?? "All",
+    );
+    const [activeCuisine, setActiveCuisine] = useState(
+        filters?.cuisine ?? "All",
     );
 
     const recipeList = recipes?.data ?? [];
@@ -29,11 +38,18 @@ export default function Recipes({
             : [];
         return ["All", ...list];
     }, [categoryOptions]);
+    const cuisines = useMemo(() => {
+        const list = Array.isArray(cuisineOptions)
+            ? cuisineOptions.filter(Boolean)
+            : [];
+        return ["All", ...list];
+    }, [cuisineOptions]);
 
     useEffect(() => {
         setSearchQuery(filters?.q ?? "");
         setActiveCategory(filters?.category ?? "All");
-    }, [filters?.q, filters?.category]);
+        setActiveCuisine(filters?.cuisine ?? "All");
+    }, [filters?.q, filters?.category, filters?.cuisine]);
 
     useEffect(() => {
         const currentQuery = filters?.q ?? "";
@@ -43,13 +59,13 @@ export default function Recipes({
         }
 
         const timeout = window.setTimeout(() => {
-            visitWithFilters(searchQuery, activeCategory);
+            visitWithFilters(searchQuery, activeCategory, activeCuisine);
         }, 350);
 
         return () => window.clearTimeout(timeout);
     }, [searchQuery]);
 
-    function visitWithFilters(nextQuery: string, nextCategory: string) {
+    function visitWithFilters(nextQuery: string, nextCategory: string, nextCuisine: string) {
         const params: Record<string, string> = {};
 
         const q = nextQuery.trim();
@@ -59,6 +75,10 @@ export default function Recipes({
 
         if (nextCategory && nextCategory !== "All") {
             params.category = nextCategory;
+        }
+
+        if (nextCuisine && nextCuisine !== "All") {
+            params.cuisine = nextCuisine;
         }
 
         if (filters?.user) {
@@ -74,7 +94,12 @@ export default function Recipes({
 
     function handleCategoryClick(category: string) {
         setActiveCategory(category);
-        visitWithFilters(searchQuery, category);
+        visitWithFilters(searchQuery, category, activeCuisine);
+    }
+
+    function handleCuisineClick(cuisine: string) {
+        setActiveCuisine(cuisine);
+        visitWithFilters(searchQuery, activeCategory, cuisine);
     }
 
     return (
@@ -82,17 +107,19 @@ export default function Recipes({
             user={auth.user}
             header={
                 <h2 className="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-                    Recipes
+                    {pageTitle}
                 </h2>
             }
         >
-            <Head title="Recipes" />
+            <Head title={pageTitle} />
 
             <div className="bg-white py-6 sm:py-10">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <section className="mb-10 rounded-3xl border border-red-200 bg-gradient-to-br from-red-100 via-rose-50 to-zinc-50 p-8 shadow-sm sm:p-10">
                         <h1 className="font-serif text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl">
-                            Discover Delicious Recipes
+                            {pageTitle === "My Favorites"
+                                ? "Your Favorite Recipes"
+                                : "Discover Delicious Recipes"}
                         </h1>
                         <p className="mt-3 max-w-3xl text-lg text-zinc-600">
                             Explore your collection and find the perfect recipe
@@ -115,8 +142,8 @@ export default function Recipes({
                         </div>
                     </section>
 
-                    <section className="mb-8">
-                        <div className="max-w-sm">
+                    <section className="mb-8 grid gap-4 md:max-w-2xl md:grid-cols-2">
+                        <div>
                             <label
                                 htmlFor="category-filter"
                                 className="mb-2 block text-sm font-medium text-zinc-700"
@@ -140,6 +167,30 @@ export default function Recipes({
                                 ))}
                             </select>
                         </div>
+                        <div>
+                            <label
+                                htmlFor="cuisine-filter"
+                                className="mb-2 block text-sm font-medium text-zinc-700"
+                            >
+                                Cuisine
+                            </label>
+                            <select
+                                id="cuisine-filter"
+                                value={activeCuisine}
+                                onChange={(e) =>
+                                    handleCuisineClick(e.target.value)
+                                }
+                                className="h-11 w-full rounded-xl border border-red-200 bg-white px-3 text-sm text-zinc-900 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-200"
+                            >
+                                {cuisines.map((cuisine) => (
+                                    <option key={cuisine} value={cuisine}>
+                                        {cuisine === "All"
+                                            ? "All cuisines"
+                                            : decodeHtmlEntities(cuisine)}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     </section>
 
                     {recipeList.length > 0 ? (
@@ -153,7 +204,7 @@ export default function Recipes({
                         </section>
                     ) : (
                         <div className="rounded-2xl border border-red-200 bg-white p-8 text-center text-zinc-600">
-                            No recipes matched your filters.
+                            {emptyMessage}
                         </div>
                     )}
 
@@ -171,10 +222,80 @@ function RecipePreview({ recipe }: any) {
     const category = normalizeCategory(recipe.category) || "Uncategorized";
     const recipeName = decodeHtmlEntities(recipe.name ?? "Untitled recipe");
     const hasImage = Boolean(recipe.image) && !imageFailed;
+    const isFavorited = Boolean(recipe.is_favorited);
+    const isMade = Boolean(recipe.is_made);
+
+    function toggleFavorite(e: React.MouseEvent<HTMLButtonElement>) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const url = route(
+            isFavorited ? "recipes.unfavorite" : "recipes.favorite",
+            recipe.id,
+        );
+
+        if (isFavorited) {
+            router.delete(url, {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            });
+
+            return;
+        }
+
+        router.post(
+            url,
+            {},
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
+    }
+
+    function toggleMade(e: React.MouseEvent<HTMLButtonElement>) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const url = route(isMade ? "recipes.unmade" : "recipes.made", recipe.id);
+
+        if (isMade) {
+            router.delete(url, {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            });
+
+            return;
+        }
+
+        router.post(
+            url,
+            {},
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
+    }
 
     return (
-        <article className="group overflow-hidden rounded-2xl border border-red-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+        <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-red-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
             <div className="relative aspect-[4/3] overflow-hidden bg-red-50">
+                <button
+                    type="button"
+                    aria-label={
+                        isFavorited ? "Remove from favorites" : "Add to favorites"
+                    }
+                    onClick={toggleFavorite}
+                    className="absolute right-3 top-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border border-red-200 bg-white/95 text-red-500 shadow-sm transition hover:bg-red-50"
+                >
+                    <HeartIcon filled={isFavorited} className="h-5 w-5" />
+                </button>
+
                 {hasImage ? (
                     <Link href={`/recipe/${recipe.slug}`}>
                         <img
@@ -191,10 +312,25 @@ function RecipePreview({ recipe }: any) {
                 <span className="absolute left-3 top-3 rounded-full bg-red-500 px-3 py-1 text-xs font-medium text-white">
                     {category}
                 </span>
+
+                <button
+                    type="button"
+                    aria-label={isMade ? "Mark as not made" : "Mark as made"}
+                    onClick={toggleMade}
+                    className={
+                        "absolute bottom-3 right-3 z-10 inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium shadow-sm transition " +
+                        (isMade
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                            : "border-zinc-200 bg-white/95 text-zinc-600 hover:bg-zinc-100")
+                    }
+                >
+                    <CheckCircleIcon className="h-3.5 w-3.5" />
+                    Made this
+                </button>
             </div>
 
-            <div className="p-5">
-                <div>
+            <div className="flex flex-1 flex-col p-5">
+                <div className="flex-1">
                     <h3 className="font-serif text-2xl font-semibold text-zinc-900 transition-colors group-hover:text-red-600">
                         <Link href={`/recipe/${recipe.slug}`}>
                             {recipeName}
@@ -205,22 +341,24 @@ function RecipePreview({ recipe }: any) {
                     </div>
                 </div>
 
-                <div className="mt-4 flex items-center gap-4 text-xs text-zinc-500">
-                    <div className="flex items-center gap-1.5">
-                        <ClockIcon className="h-4 w-4" />
-                        <span>{getCookTime(recipe)}</span>
+                <div className="mt-4 space-y-4">
+                    <div className="flex items-center gap-4 text-xs text-zinc-500">
+                        <div className="flex items-center gap-1.5">
+                            <ClockIcon className="h-4 w-4" />
+                            <span>{getCookTime(recipe)}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <UsersIcon className="h-4 w-4" />
+                            <span>{getServings(recipe)} servings</span>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                        <UsersIcon className="h-4 w-4" />
-                        <span>{getServings(recipe)} servings</span>
-                    </div>
-                </div>
 
-                <div className="mt-4 flex items-center justify-between gap-4 text-sm">
-                    <AddedBy recipe={recipe} />
-                    <div className="flex items-center gap-2 text-zinc-500">
-                        <CommentIcon />
-                        {recipe.comments?.length ?? 0}
+                    <div className="flex items-center justify-between gap-4 text-sm">
+                        <AddedBy recipe={recipe} />
+                        <div className="flex items-center gap-2 text-zinc-500">
+                            <CommentIcon />
+                            {recipe.comments?.length ?? 0}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -367,6 +505,52 @@ function UsersIcon({ className = "" }: { className?: string }) {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 d="M18 18.72a9.72 9.72 0 0 0-12 0m12 0a12.04 12.04 0 0 1 3 2.13m-15-2.13a12.04 12.04 0 0 0-3 2.13m16.5-9.22a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Zm-13.5 0a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Zm13.5 0a3.75 3.75 0 1 1 7.5 0 3.75 3.75 0 0 1-7.5 0Z"
+            />
+        </svg>
+    );
+}
+
+function HeartIcon({
+    className = "",
+    filled = false,
+}: {
+    className?: string;
+    filled?: boolean;
+}) {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill={filled ? "currentColor" : "none"}
+            stroke="currentColor"
+            strokeWidth="1.8"
+            className={className}
+            aria-hidden="true"
+        >
+            <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 21.35 10.55 20.03C5.4 15.36 2 12.27 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09A6.02 6.02 0 0 1 16.5 3C19.58 3 22 5.42 22 8.5c0 3.77-3.4 6.86-8.55 11.54L12 21.35Z"
+            />
+        </svg>
+    );
+}
+
+function CheckCircleIcon({ className = "" }: { className?: string }) {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            className={className}
+            aria-hidden="true"
+        >
+            <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
             />
         </svg>
     );

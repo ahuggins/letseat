@@ -16,8 +16,13 @@ class CommentController extends Controller
 
         $model = "App\Models\\$mapped";
         $entity = $model::find((int) $id);
+        $user = $request->user();
 
-        $entity->commentAsUser(auth()->user(), $request->comment);
+        if (! $user || ! $entity) {
+            return redirect()->back();
+        }
+
+        $entity->commentAsUser($user, (string) $request->comment);
 
         return redirect($request->headers->get('referer'));
     }

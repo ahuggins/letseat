@@ -5,8 +5,14 @@ import InputError from "@/Components/InputError";
 import InputLabel from "@/Components/InputLabel";
 import PrimaryButton from "@/Components/PrimaryButton";
 import TextInput from "@/Components/TextInput";
-import { Head, Link, useForm } from "@inertiajs/react";
-import LoginLink from "@/../../vendor/spatie/laravel-login-link/resources/ts/LoginLink";
+import { Head, Link, router, useForm } from "@inertiajs/react";
+
+const routeOr = (name: string, fallback: string) => {
+    const routeFn = (globalThis as { route?: (routeName: string) => string })
+        .route;
+
+    return typeof routeFn === "function" ? routeFn(name) : fallback;
+};
 
 export default function Login({
     status,
@@ -32,7 +38,24 @@ export default function Login({
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
 
-        post(route("login"));
+        post(routeOr("login", "/login"));
+    };
+
+    const loginLinkRoute = routeOr(
+        "loginLinkLogin",
+        "/laravel-login-link-login",
+    );
+    const recipesRoute = routeOr("recipes", "/recipes");
+    const forgotPasswordRoute = routeOr("password.request", "/forgot-password");
+
+    const loginAs = (email: string) => {
+        router.post(loginLinkRoute, {
+            email,
+            key: null,
+            redirect_url: recipesRoute,
+            guard: null,
+            user_attributes: null,
+        });
     };
 
     return (
@@ -47,19 +70,21 @@ export default function Login({
 
             {environment === "local" && (
                 <>
-                    <LoginLink
-                        email="andrewhuggins@gmail.com"
-                        label="Login as andrewhuggins@gmail.com"
+                    <button
+                        type="button"
                         className="pb-3 text-red-500"
-                        redirectUrl={route("recipes")}
-                    />
+                        onClick={() => loginAs("andrewhuggins@gmail.com")}
+                    >
+                        Login as andrewhuggins@gmail.com
+                    </button>
 
-                    <LoginLink
-                        email="nicolelane.168@gmail.com"
-                        label="Login as nicolelane.168@gmail.com"
+                    <button
+                        type="button"
                         className="pb-3 text-red-500"
-                        redirectUrl={route("recipes")}
-                    />
+                        onClick={() => loginAs("nicolelane.168@gmail.com")}
+                    >
+                        Login as nicolelane.168@gmail.com
+                    </button>
                 </>
             )}
 
@@ -113,7 +138,7 @@ export default function Login({
                 <div className="flex items-center justify-end mt-4">
                     {canResetPassword && (
                         <Link
-                            href={route("password.request")}
+                            href={forgotPasswordRoute}
                             className="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800"
                         >
                             Forgot your password?

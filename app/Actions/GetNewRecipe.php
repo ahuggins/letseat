@@ -23,6 +23,7 @@ class GetNewRecipe
         [$description, $siteLink] = $this->getWebPage($content);
         $image = $this->getThumbnail($content);
         $category = $this->getCategory($content);
+        $cuisine = $this->getCuisine($content);
 
         $lookup = [
             'user_id' => (int) $userId,
@@ -42,7 +43,7 @@ class GetNewRecipe
             'nutrition' => $nutrition,
             'raw_data' => null,
             'category' => $category,
-            'cuisine' => null,
+            'cuisine' => $cuisine,
         ];
 
         if ($refresh) {
@@ -81,6 +82,29 @@ class GetNewRecipe
 
         if (array_key_exists('recipeCategory', $d)) {
             return $this->normalizeCategory($d['recipeCategory']);
+        }
+
+        return null;
+    }
+
+    private function getCuisine(mixed $data): ?string
+    {
+        $d = (array) $data;
+
+        if (array_key_exists('@graph', $d) && is_array($d['@graph'])) {
+            foreach ($d['@graph'] as $node) {
+                $arr = (array) $node;
+                $nodeType = $arr['@type'] ?? null;
+                $isRecipe = $nodeType === 'Recipe' || (is_array($nodeType) && in_array('Recipe', $nodeType, true));
+
+                if ($isRecipe && array_key_exists('recipeCuisine', $arr)) {
+                    return $this->normalizeCategory($arr['recipeCuisine']);
+                }
+            }
+        }
+
+        if (array_key_exists('recipeCuisine', $d)) {
+            return $this->normalizeCategory($d['recipeCuisine']);
         }
 
         return null;

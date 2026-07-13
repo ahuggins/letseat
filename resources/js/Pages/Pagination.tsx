@@ -48,7 +48,7 @@ export default function Pagination({ paginated }: { paginated: any }) {
                                                 index ===
                                                 paginated.links.length - 1,
                                             "cursor-pointer bg-white text-zinc-700 hover:bg-red-100":
-                                                link.url,
+                                                link.url && !link.active,
                                             "cursor-not-allowed bg-red-50/60 text-zinc-400":
                                                 !link.url,
                                         },

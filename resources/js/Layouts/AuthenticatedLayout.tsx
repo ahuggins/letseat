@@ -14,6 +14,8 @@ export default function Authenticated({
     const searchParams = new URLSearchParams(window.location.search);
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
+    const isFavoritesSection =
+        route().current("favorites") || route().current("makes");
 
     function handleSearchSubmit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -55,6 +57,36 @@ export default function Authenticated({
                                 >
                                     Add Recipe
                                 </NavLink>
+                                <div className="group relative">
+                                    <Link
+                                        href={route("favorites")}
+                                        className={
+                                            "inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-none " +
+                                            (isFavoritesSection
+                                                ? "border-indigo-400 text-gray-900 "
+                                                : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700")
+                                        }
+                                    >
+                                        My Favorites
+                                    </Link>
+
+                                    <div className="absolute left-0 top-full z-50 hidden min-w-[10rem] pt-1 group-hover:block group-focus-within:block">
+                                        <div className="absolute -top-2 left-0 h-2 w-full" />
+                                        <div className="rounded-xl border border-red-100 bg-white p-1 shadow-lg">
+                                            <Link
+                                                href={route("makes")}
+                                                className={
+                                                    "block rounded-lg px-3 py-2 text-sm transition " +
+                                                    (route().current("makes")
+                                                        ? "bg-red-50 text-red-700"
+                                                        : "text-zinc-700 hover:bg-red-50 hover:text-red-700")
+                                                }
+                                            >
+                                                My Makes
+                                            </Link>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -188,6 +220,18 @@ export default function Authenticated({
                                 active={route().current("add-recipe")}
                             >
                                 Add Recipe
+                            </ResponsiveNavLink>
+                            <ResponsiveNavLink
+                                href={route("favorites")}
+                                active={route().current("favorites")}
+                            >
+                                My Favorites
+                            </ResponsiveNavLink>
+                            <ResponsiveNavLink
+                                href={route("makes")}
+                                active={route().current("makes")}
+                            >
+                                My Makes
                             </ResponsiveNavLink>
                         </div>
                     </div>

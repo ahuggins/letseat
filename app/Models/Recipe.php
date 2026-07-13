@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use BeyondCode\Comments\Traits\HasComments;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +10,7 @@ use Laravel\Scout\Searchable;
 
 class Recipe extends Model
 {
-    use HasComments, HasFactory, Searchable;
+    use HasFactory, Searchable;
 
     protected $guarded = [];
 
@@ -28,6 +27,20 @@ class Recipe extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function comments()
+    {
+        return $this->morphMany(Comment::class, 'commentable');
+    }
+
+    public function commentAsUser(User $user, string $comment): Comment
+    {
+        return $this->comments()->create([
+            'user_id' => $user->id,
+            'comment' => $comment,
+            'is_approved' => true,
+        ]);
     }
 
     protected function name(): Attribute
