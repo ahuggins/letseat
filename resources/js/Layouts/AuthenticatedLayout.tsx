@@ -31,7 +31,10 @@ export default function Authenticated({
                     <div className="flex h-16 items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
                             <div className="shrink-0 flex items-center">
-                                <Link href="/" className="inline-flex items-center gap-2">
+                                <Link
+                                    href="/"
+                                    className="inline-flex items-center gap-2"
+                                >
                                     <ApplicationLogo className="block h-8 w-auto fill-current text-red-600" />
                                     <span className="font-serif text-xl font-bold text-red-700">
                                         LetsEat
@@ -56,7 +59,10 @@ export default function Authenticated({
                         </div>
 
                         <div className="hidden md:flex md:flex-1 md:items-center md:justify-end md:gap-4">
-                            <form onSubmit={handleSearchSubmit} className="w-full max-w-sm">
+                            <form
+                                onSubmit={handleSearchSubmit}
+                                className="w-full max-w-sm"
+                            >
                                 <input
                                     type="text"
                                     name="q"
@@ -171,18 +177,18 @@ export default function Authenticated({
                         </form>
 
                         <div className="space-y-1">
-                        <ResponsiveNavLink
-                            href={route("recipes")}
-                            active={route().current("recipes")}
-                        >
-                            Recipes
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink
-                            href={route("add-recipe")}
-                            active={route().current("add-recipe")}
-                        >
-                            Add Recipe
-                        </ResponsiveNavLink>
+                            <ResponsiveNavLink
+                                href={route("recipes")}
+                                active={route().current("recipes")}
+                            >
+                                Recipes
+                            </ResponsiveNavLink>
+                            <ResponsiveNavLink
+                                href={route("add-recipe")}
+                                active={route().current("add-recipe")}
+                            >
+                                Add Recipe
+                            </ResponsiveNavLink>
                         </div>
                     </div>
 

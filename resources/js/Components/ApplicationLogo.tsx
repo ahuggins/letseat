@@ -1,7 +1,7 @@
 import { SVGAttributes } from "react";
 
 export default function ApplicationLogo(
-    props: SVGAttributes<SVGSVGElement> & { size?: string; color?: string }
+    props: SVGAttributes<SVGSVGElement> & { size?: string; color?: string },
 ) {
     const { size, className, color, ...svgProps } = props;
 

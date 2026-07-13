@@ -8,9 +8,17 @@ export default function Pagination({ paginated }: { paginated: any }) {
                 <div>
                     <p className="text-sm text-zinc-600">
                         Showing{" "}
-                        <span className="font-semibold text-zinc-900">{paginated.from}</span> to{" "}
-                        <span className="font-semibold text-zinc-900">{paginated.to}</span> of{" "}
-                        <span className="font-semibold text-zinc-900">{paginated.total}</span>{" "}
+                        <span className="font-semibold text-zinc-900">
+                            {paginated.from}
+                        </span>{" "}
+                        to{" "}
+                        <span className="font-semibold text-zinc-900">
+                            {paginated.to}
+                        </span>{" "}
+                        of{" "}
+                        <span className="font-semibold text-zinc-900">
+                            {paginated.total}
+                        </span>{" "}
                         results
                     </p>
                 </div>
@@ -26,7 +34,7 @@ export default function Pagination({ paginated }: { paginated: any }) {
                                     href={
                                         link.url
                                             ? mergeSearchParams(
-                                                  new URL(link.url)
+                                                  new URL(link.url),
                                               )
                                             : ""
                                     }
@@ -43,7 +51,7 @@ export default function Pagination({ paginated }: { paginated: any }) {
                                                 link.url,
                                             "cursor-not-allowed bg-red-50/60 text-zinc-400":
                                                 !link.url,
-                                        }
+                                        },
                                     )}
                                 >
                                     <span className="sr-only">
