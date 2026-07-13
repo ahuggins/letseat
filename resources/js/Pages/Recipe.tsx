@@ -364,33 +364,9 @@ function PrivateNotesSection({ auth, recipe, privateNotes }: any) {
                 </p>
             </div>
 
-            <form
-                onSubmit={handleCreate}
-                data-testid="recipe-private-note-form"
-                className="mb-5"
-            >
-                <textarea
-                    id="note"
-                    onChange={(e) =>
-                        setValues((prev) => ({ ...prev, note: e.target.value }))
-                    }
-                    data-testid="recipe-private-note-input"
-                    className="min-h-28 w-full rounded-xl border border-red-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-500 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-200"
-                    placeholder="Write a private note in Markdown"
-                    value={values.note}
-                />
-                <button
-                    type="submit"
-                    data-testid="recipe-private-note-submit"
-                    className="mt-3 rounded-full bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600"
-                >
-                    Save note
-                </button>
-            </form>
-
             {privateNotes.length ? (
                 <div
-                    className="space-y-3"
+                    className="mb-5 space-y-3"
                     data-testid="recipe-private-notes-list"
                 >
                     {privateNotes.map((note: any) => {
@@ -487,12 +463,35 @@ function PrivateNotesSection({ auth, recipe, privateNotes }: any) {
                 </div>
             ) : (
                 <div
-                    className="text-sm text-zinc-500"
+                    className="mb-5 text-sm text-zinc-500"
                     data-testid="recipe-private-notes-empty"
                 >
                     No private notes yet.
                 </div>
             )}
+
+            <form
+                onSubmit={handleCreate}
+                data-testid="recipe-private-note-form"
+            >
+                <textarea
+                    id="note"
+                    onChange={(e) =>
+                        setValues((prev) => ({ ...prev, note: e.target.value }))
+                    }
+                    data-testid="recipe-private-note-input"
+                    className="min-h-28 w-full rounded-xl border border-red-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-500 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-200"
+                    placeholder="Write a private note in Markdown"
+                    value={values.note}
+                />
+                <button
+                    type="submit"
+                    data-testid="recipe-private-note-submit"
+                    className="mt-3 rounded-full bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600"
+                >
+                    Save note
+                </button>
+            </form>
         </div>
     );
 }
