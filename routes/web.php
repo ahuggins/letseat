@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\PrivateRecipeNoteController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RecipeController;
 use App\Models\NewRecipe;
@@ -116,8 +117,16 @@ Route::get('/my-makes', fn (Request $request) => $renderRecipeIndex($request, fa
     ->middleware(['auth', 'verified'])
     ->name('makes');
 
-Route::get('/recipe/{recipe:slug}', function (NewRecipe $recipe) {
-    return Inertia::render('Recipe', ['recipe' => $recipe]);
+Route::get('/recipe/{recipe:slug}', function (Request $request, NewRecipe $recipe) {
+    $privateNotes = $recipe->privateNotes()
+        ->where('user_id', $request->user()->id)
+        ->orderBy('created_at')
+        ->get();
+
+    return Inertia::render('Recipe', [
+        'recipe' => $recipe,
+        'privateNotes' => $privateNotes,
+    ]);
 })->middleware(['auth', 'verified'])->name('recipe');
 
 Route::get('/search', function (Request $request) {
@@ -163,6 +172,12 @@ Route::middleware('auth')->group(function () {
     })->name('recipes.unmade');
 
     Route::post('/comment/{model}/{id}', [CommentController::class, 'store'])->name('comment.store');
+    Route::post('/recipes/{recipe}/private-notes', [PrivateRecipeNoteController::class, 'store'])
+        ->name('recipes.private-notes.store');
+    Route::patch('/recipes/{recipe}/private-notes/{note}', [PrivateRecipeNoteController::class, 'update'])
+        ->name('recipes.private-notes.update');
+    Route::delete('/recipes/{recipe}/private-notes/{note}', [PrivateRecipeNoteController::class, 'destroy'])
+        ->name('recipes.private-notes.destroy');
 });
 
 require __DIR__.'/auth.php';

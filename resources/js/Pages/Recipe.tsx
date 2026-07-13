@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link, router } from "@inertiajs/react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import ExternalLinkRow from "@/Components/Recipe/ExternalLinkRow";
 import Directions from "@/Components/Recipe/Directions";
 import Nutrition from "@/Components/Recipe/Nutrition";
@@ -8,7 +10,7 @@ import BackIcon from "@/Components/Icons/BackIcon";
 import AddedBy from "@/Components/Recipe/AddedBy";
 import ApplicationLogo from "@/Components/ApplicationLogo";
 
-export default function Recipe({ auth, recipe }: any) {
+export default function Recipe({ auth, recipe, privateNotes = [] }: any) {
     const recipeName = decodeHtmlEntities(recipe.name || "");
     const ingredients = Array.isArray(recipe.ingredients)
         ? recipe.ingredients
@@ -141,6 +143,12 @@ export default function Recipe({ auth, recipe }: any) {
                                     <Directions recipe={recipe} />
                                 </div>
                             </div>
+
+                            <PrivateNotesSection
+                                auth={auth}
+                                recipe={recipe}
+                                privateNotes={privateNotes}
+                            />
                         </div>
 
                         <div className="space-y-6">
@@ -288,6 +296,215 @@ function CommentInput({ auth, recipe }: any) {
             </button>
         </form>
     );
+}
+
+function PrivateNotesSection({ auth, recipe, privateNotes }: any) {
+    const [values, setValues] = useState({
+        user_id: auth.user.id,
+        note: "",
+    });
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [editingNote, setEditingNote] = useState("");
+
+    async function handleCreate(e: any) {
+        e.preventDefault();
+
+        if (!values.note.trim()) {
+            return;
+        }
+
+        await router.post(
+            `/recipes/${recipe.id}/private-notes`,
+            { note: values.note },
+            {
+                preserveScroll: true,
+            },
+        );
+
+        setValues((prev) => ({ ...prev, note: "" }));
+    }
+
+    async function handleSaveEdit(noteId: number) {
+        if (!editingNote.trim()) {
+            return;
+        }
+
+        await router.patch(
+            `/recipes/${recipe.id}/private-notes/${noteId}`,
+            {
+                note: editingNote,
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setEditingId(null);
+                    setEditingNote("");
+                },
+            },
+        );
+    }
+
+    async function handleDelete(noteId: number) {
+        await router.delete(`/recipes/${recipe.id}/private-notes/${noteId}`, {
+            preserveScroll: true,
+        });
+    }
+
+    return (
+        <div
+            className="overflow-hidden rounded-2xl border border-red-200 bg-white p-6 shadow-sm"
+            data-testid="recipe-private-notes-section"
+        >
+            <div className="mb-4">
+                <h2 className="font-serif text-2xl font-semibold text-zinc-900">
+                    Private Notes
+                </h2>
+                <p className="mt-1 text-sm text-zinc-600">
+                    Only you can see these notes.
+                </p>
+            </div>
+
+            <form
+                onSubmit={handleCreate}
+                data-testid="recipe-private-note-form"
+                className="mb-5"
+            >
+                <textarea
+                    id="note"
+                    onChange={(e) =>
+                        setValues((prev) => ({ ...prev, note: e.target.value }))
+                    }
+                    data-testid="recipe-private-note-input"
+                    className="min-h-28 w-full rounded-xl border border-red-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-500 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-200"
+                    placeholder="Write a private note in Markdown"
+                    value={values.note}
+                />
+                <button
+                    type="submit"
+                    data-testid="recipe-private-note-submit"
+                    className="mt-3 rounded-full bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600"
+                >
+                    Save note
+                </button>
+            </form>
+
+            {privateNotes.length ? (
+                <div
+                    className="space-y-3"
+                    data-testid="recipe-private-notes-list"
+                >
+                    {privateNotes.map((note: any) => {
+                        const isEditing = editingId === note.id;
+
+                        return (
+                            <div
+                                key={note.id}
+                                className="rounded-xl border border-red-100 bg-red-50/30 p-4"
+                                data-testid={`recipe-private-note-${note.id}`}
+                            >
+                                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                                    <p
+                                        className="text-xs font-medium text-zinc-600"
+                                        data-testid={`recipe-private-note-timestamp-${note.id}`}
+                                    >
+                                        {formatTimestamp(note.created_at)}
+                                    </p>
+
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setEditingId(note.id);
+                                                setEditingNote(note.note || "");
+                                            }}
+                                            className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-medium text-red-700 transition-colors hover:bg-red-100"
+                                            data-testid={`recipe-private-note-edit-${note.id}`}
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                handleDelete(note.id)
+                                            }
+                                            className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-medium text-red-700 transition-colors hover:bg-red-100"
+                                            data-testid={`recipe-private-note-delete-${note.id}`}
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {isEditing ? (
+                                    <div>
+                                        <textarea
+                                            value={editingNote}
+                                            onChange={(e) =>
+                                                setEditingNote(e.target.value)
+                                            }
+                                            className="min-h-24 w-full rounded-xl border border-red-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-500 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-200"
+                                            data-testid={`recipe-private-note-edit-input-${note.id}`}
+                                        />
+                                        <div className="mt-3 flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    handleSaveEdit(note.id)
+                                                }
+                                                className="rounded-full bg-red-500 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-red-600"
+                                                data-testid={`recipe-private-note-edit-save-${note.id}`}
+                                            >
+                                                Save
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setEditingId(null);
+                                                    setEditingNote("");
+                                                }}
+                                                className="rounded-full border border-red-200 bg-white px-4 py-2 text-xs font-medium text-zinc-700 transition-colors hover:bg-red-100"
+                                                data-testid={`recipe-private-note-edit-cancel-${note.id}`}
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div
+                                        className="markdown-note text-sm leading-6 text-zinc-800"
+                                        data-testid={`recipe-private-note-body-${note.id}`}
+                                    >
+                                        <ReactMarkdown
+                                            remarkPlugins={[remarkGfm]}
+                                        >
+                                            {note.note || ""}
+                                        </ReactMarkdown>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            ) : (
+                <div
+                    className="text-sm text-zinc-500"
+                    data-testid="recipe-private-notes-empty"
+                >
+                    No private notes yet.
+                </div>
+            )}
+        </div>
+    );
+}
+
+function formatTimestamp(value: string): string {
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+
+    return date.toLocaleString();
 }
 
 function normalizeCategory(value: any): string {

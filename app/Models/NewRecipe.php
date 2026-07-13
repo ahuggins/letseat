@@ -33,6 +33,11 @@ class NewRecipe extends Model
         return $this->morphMany(Comment::class, 'commentable');
     }
 
+    public function privateNotes()
+    {
+        return $this->hasMany(PrivateRecipeNote::class);
+    }
+
     public function favoritedBy()
     {
         return $this->belongsToMany(User::class, 'new_recipe_favorites')
