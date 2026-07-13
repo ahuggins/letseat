@@ -28,53 +28,66 @@ export default function Recipe({ auth, recipe }: any) {
 
             <div className="bg-white py-6 sm:py-10" data-testid="recipe-page">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                        <Link
+                            href="/recipes"
+                            data-testid="recipe-back-link"
+                            className="inline-flex items-center gap-2 rounded-full border border-red-300/80 bg-white/85 px-3 py-1.5 text-sm font-medium text-red-700 shadow-sm backdrop-blur transition-colors hover:bg-red-50 hover:text-red-900"
+                        >
+                            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-100 text-red-700 ring-1 ring-red-200">
+                                <BackIcon className="size-4" />
+                            </span>
+                            Back to recipes
+                        </Link>
+
+                        <AddedBy recipe={recipe} />
+                    </div>
+
                     <section
-                        className="mb-6 rounded-3xl border border-red-200 bg-gradient-to-br from-red-100 via-rose-50 to-zinc-50 p-8 shadow-sm sm:p-10"
+                        className="relative mb-6 overflow-hidden rounded-3xl border border-red-200/80 bg-gradient-to-br from-red-100 via-rose-50 to-amber-50 p-6 shadow-sm sm:p-10"
                         data-testid="recipe-hero"
                     >
-                        <div className="flex flex-wrap items-start justify-between gap-4">
-                            <div>
-                                <Link
-                                    href="/recipes"
-                                    data-testid="recipe-back-link"
-                                    className="mb-4 inline-flex items-center gap-2 rounded-full border border-red-200 bg-white px-2.5 py-1.5 text-sm font-medium text-red-700 transition-colors hover:bg-red-50 hover:text-red-900"
-                                >
-                                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-100 text-red-700">
-                                        <BackIcon className="size-4" />
-                                    </span>
-                                    Back to recipes
-                                </Link>
-                                <h1
-                                    className="font-serif text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl"
-                                    data-testid="recipe-title"
-                                >
-                                    {recipeName}
-                                </h1>
-                                <div className="mt-3 flex items-center gap-3 text-sm text-zinc-600">
-                                    <AddedBy recipe={recipe} />
+                        <div className="pointer-events-none absolute -right-14 -top-14 h-44 w-44 rounded-full bg-red-200/45 blur-2xl" />
+                        <div className="pointer-events-none absolute -bottom-16 -left-12 h-40 w-40 rounded-full bg-amber-200/40 blur-2xl" />
+
+                        <div className="relative flex flex-wrap items-start justify-between gap-4">
+                            <div className="max-w-4xl">
+                                <div className="mb-3 flex flex-wrap items-center gap-2.5">
+                                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-red-700/80">
+                                        Recipe
+                                    </p>
+
                                     {category && (
                                         <span
-                                            className="rounded-full bg-red-500 px-3 py-1 text-xs font-medium text-white"
+                                            className="inline-flex rounded-full border border-red-200 bg-red-500 px-3 py-1 text-xs font-medium text-white shadow-sm"
                                             data-testid="recipe-category"
                                         >
                                             {category}
                                         </span>
                                     )}
                                 </div>
-                            </div>
-                        </div>
 
-                        <div
-                            className="mt-4"
-                            data-testid="recipe-external-links"
-                        >
-                            <ExternalLinkRow
-                                name={recipe.site_name || recipeName}
-                                siteLink={
-                                    recipe.site_link || recipe.site_domain
-                                }
-                                originalLink={recipe.url}
-                            />
+                                <h1
+                                    className="font-serif text-4xl font-bold leading-tight tracking-tight text-zinc-900 sm:text-5xl"
+                                    data-testid="recipe-title"
+                                >
+                                    {recipeName}
+                                </h1>
+
+                                <div
+                                    className="relative mt-4"
+                                    data-testid="recipe-external-links"
+                                >
+                                    <ExternalLinkRow
+                                        name={recipe.site_name || recipeName}
+                                        siteLink={
+                                            recipe.site_link || recipe.site_domain
+                                        }
+                                        originalLink={recipe.url}
+                                    />
+                                </div>
+
+                            </div>
                         </div>
                     </section>
 
