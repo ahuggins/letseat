@@ -81,12 +81,12 @@ export default function Recipe({ auth, recipe }: any) {
                                     <ExternalLinkRow
                                         name={recipe.site_name || recipeName}
                                         siteLink={
-                                            recipe.site_link || recipe.site_domain
+                                            recipe.site_link ||
+                                            recipe.site_domain
                                         }
                                         originalLink={recipe.url}
                                     />
                                 </div>
-
                             </div>
                         </div>
                     </section>
