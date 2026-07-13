@@ -3,13 +3,14 @@
 namespace App\Actions;
 
 use App\Models\NewRecipe;
+use Illuminate\Support\Str;
 use Spatie\QueueableAction\QueueableAction;
 
 class GetNewRecipe
 {
     use QueueableAction;
 
-    public function execute(string $url, int|string $userId): NewRecipe
+    public function execute(string $url, int|string $userId, bool $refresh = false): NewRecipe
     {
         $data = (new GetRecipeDataFromURL($url))->execute();
 
@@ -21,29 +22,87 @@ class GetNewRecipe
         [$siteDomain, $siteName] = $this->getWebsite($content, $url);
         [$description, $siteLink] = $this->getWebPage($content);
         $image = $this->getThumbnail($content);
+        $category = $this->getCategory($content);
+
+        $lookup = [
+            'user_id' => (int) $userId,
+            'url' => $data['url'],
+        ];
+
+        $attributes = [
+            'name' => $data['name'],
+            'site_domain' => $siteDomain,
+            'site_name' => $siteName,
+            'site_link' => $siteLink,
+            'description' => $description,
+            'content' => $content,
+            'image' => $image,
+            'ingredients' => $ingredients,
+            'directions' => $directions,
+            'nutrition' => $nutrition,
+            'raw_data' => null,
+            'category' => $category,
+            'cuisine' => null,
+        ];
+
+        if ($refresh) {
+            $existing = NewRecipe::query()->where($lookup)->first();
+
+            if ($existing) {
+                $attributes['slug'] = $existing->slug ?: Str::slug($data['name']);
+                $existing->fill($attributes);
+                $existing->save();
+
+                return $existing->fresh();
+            }
+        }
 
         return NewRecipe::firstOrCreate(
-            [
-                'user_id' => (int) $userId,
-                'url' => $data['url'],
-            ],
-            [
-                'name' => $data['name'],
-                'site_domain' => $siteDomain,
-                'site_name' => $siteName,
-                'site_link' => $siteLink,
-                'description' => $description,
-                'content' => $content,
-                'image' => $image,
-                'ingredients' => $ingredients,
-                'directions' => $directions,
-                'nutrition' => $nutrition,
-                'slug' => $data['name'],
-                'raw_data' => null,
-                'category' => null,
-                'cuisine' => null,
-            ]
+            $lookup,
+            array_merge($attributes, ['slug' => $data['name']])
         );
+    }
+
+    private function getCategory(mixed $data): ?string
+    {
+        $d = (array) $data;
+
+        if (array_key_exists('@graph', $d) && is_array($d['@graph'])) {
+            foreach ($d['@graph'] as $node) {
+                $arr = (array) $node;
+                $nodeType = $arr['@type'] ?? null;
+                $isRecipe = $nodeType === 'Recipe' || (is_array($nodeType) && in_array('Recipe', $nodeType, true));
+
+                if ($isRecipe && array_key_exists('recipeCategory', $arr)) {
+                    return $this->normalizeCategory($arr['recipeCategory']);
+                }
+            }
+        }
+
+        if (array_key_exists('recipeCategory', $d)) {
+            return $this->normalizeCategory($d['recipeCategory']);
+        }
+
+        return null;
+    }
+
+    private function normalizeCategory(mixed $value): ?string
+    {
+        if (is_string($value)) {
+            return $value !== '' ? $value : null;
+        }
+
+        if (! is_array($value)) {
+            return null;
+        }
+
+        $filtered = array_values(array_filter($value, fn ($item) => is_string($item) && $item !== ''));
+
+        if ($filtered === []) {
+            return null;
+        }
+
+        return implode(', ', $filtered);
     }
 
     private function decodeToArray(mixed $value): array

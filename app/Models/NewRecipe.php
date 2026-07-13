@@ -31,7 +31,7 @@ class NewRecipe extends Model
 
     public function toSearchableArray()
     {
-        return array_merge(['name' => $this->name, 'ingredients' => $this->ingredients], [
+        return array_merge(['name' => $this->name, 'ingredients' => $this->ingredients, 'category' => $this->category], [
             'id' => (string) $this->id,
             'created_at' => $this->created_at->timestamp,
         ]);

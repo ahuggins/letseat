@@ -23,9 +23,9 @@ Route::get('/dashboard', function () {
 
 Route::get('/recipes', function (Request $request) {
     if ($request->query('user')) {
-        $recipes = App\Models\NewRecipe::where('user_id', (int) $request->query('user'))->orderBy('created_at', 'desc')->paginate();
+        $recipes = App\Models\NewRecipe::query()->where('user_id', (int) $request->query('user'))->orderBy('created_at', 'desc')->paginate();
     } else {
-        $recipes = App\Models\NewRecipe::orderBy('created_at', 'desc')->paginate();
+        $recipes = App\Models\NewRecipe::query()->orderBy('created_at', 'desc')->paginate();
     }
 
     return Inertia::render('Recipes', ['recipes' => $recipes]);
@@ -37,7 +37,7 @@ Route::get('/recipe/{recipe:slug}', function (App\Models\NewRecipe $recipe) {
 
 Route::get('/search', function (Request $request) {
     $recipes = App\Models\NewRecipe::search($request->query('q'))->options([
-        'query_by' => 'name,ingredients',
+        'query_by' => 'name,ingredients,category',
     ])->paginate();
 
     return Inertia::render('Search', ['recipes' => ['data' => $recipes]]);
