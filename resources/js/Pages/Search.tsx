@@ -29,10 +29,16 @@ export default function Recipes({
         >
             <Head title="Recipes" />
 
-            <div className="bg-white py-6 sm:py-10">
+            <div className="bg-white py-6 sm:py-10" data-testid="search-page">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <section className="mb-8 rounded-3xl border border-red-200 bg-gradient-to-br from-red-100 via-rose-50 to-zinc-50 p-8 shadow-sm sm:p-10">
-                        <h1 className="font-serif text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl">
+                    <section
+                        className="mb-8 rounded-3xl border border-red-200 bg-gradient-to-br from-red-100 via-rose-50 to-zinc-50 p-8 shadow-sm sm:p-10"
+                        data-testid="search-hero"
+                    >
+                        <h1
+                            className="font-serif text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl"
+                            data-testid="search-title"
+                        >
                             Search Results
                         </h1>
                         <p className="mt-3 text-lg text-zinc-600">
@@ -47,18 +53,24 @@ export default function Recipes({
                     </section>
 
                     {results.length > 0 ? (
-                        <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        <section
+                            className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+                            data-testid="search-results-grid"
+                        >
                             {results.map((recipe: any, index: any) => (
                                 <SearchPreview recipe={recipe} key={index} />
                             ))}
                         </section>
                     ) : (
-                        <div className="rounded-2xl border border-red-200 bg-white p-8 text-center text-zinc-600">
+                        <div
+                            className="rounded-2xl border border-red-200 bg-white p-8 text-center text-zinc-600"
+                            data-testid="search-empty"
+                        >
                             No recipes matched that search.
                         </div>
                     )}
 
-                    <div className="mt-8">
+                    <div className="mt-8" data-testid="search-pagination">
                         <Pagination paginated={recipes.data} />
                     </div>
                 </div>
@@ -82,7 +94,10 @@ function SearchPreview({ recipe }: any) {
     const commentCount = recipe.comments?.length ?? 0;
 
     return (
-        <article className="group overflow-hidden rounded-2xl border border-red-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+        <article
+            className="group overflow-hidden rounded-2xl border border-red-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+            data-testid={`search-card-${recipe.id}`}
+        >
             <div className="relative aspect-[4/3] overflow-hidden bg-red-50">
                 {imageUrl ? (
                     <Link href={recipeLink}>

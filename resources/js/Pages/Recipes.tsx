@@ -122,10 +122,16 @@ export default function Recipes({
         >
             <Head title={pageTitle} />
 
-            <div className="bg-white py-6 sm:py-10">
+            <div className="bg-white py-6 sm:py-10" data-testid="recipes-page">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <section className="mb-10 rounded-3xl border border-red-200 bg-gradient-to-br from-red-100 via-rose-50 to-zinc-50 p-8 shadow-sm sm:p-10">
-                        <h1 className="font-serif text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl">
+                    <section
+                        className="mb-10 rounded-3xl border border-red-200 bg-gradient-to-br from-red-100 via-rose-50 to-zinc-50 p-8 shadow-sm sm:p-10"
+                        data-testid="recipes-hero"
+                    >
+                        <h1
+                            className="font-serif text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl"
+                            data-testid="recipes-title"
+                        >
                             {pageTitle === "My Favorites"
                                 ? "Your Favorite Recipes"
                                 : "Discover Delicious Recipes"}
@@ -144,6 +150,7 @@ export default function Recipes({
                                     onChange={(e) =>
                                         setSearchQuery(e.target.value)
                                     }
+                                    data-testid="recipes-search-input"
                                     placeholder="Search recipes..."
                                     className="h-11 w-full rounded-full border border-red-200 bg-white pl-10 pr-4 text-sm text-zinc-900 placeholder:text-zinc-500 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-200"
                                 />
@@ -151,7 +158,10 @@ export default function Recipes({
                         </div>
                     </section>
 
-                    <section className="mb-8 grid gap-4 md:max-w-2xl md:grid-cols-2">
+                    <section
+                        className="mb-8 grid gap-4 md:max-w-2xl md:grid-cols-2"
+                        data-testid="recipes-filters"
+                    >
                         <div>
                             <label
                                 htmlFor="category-filter"
@@ -165,6 +175,7 @@ export default function Recipes({
                                 onChange={(e) =>
                                     handleCategoryClick(e.target.value)
                                 }
+                                data-testid="recipes-category-filter"
                                 className="h-11 w-full rounded-xl border border-red-200 bg-white px-3 text-sm text-zinc-900 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-200"
                             >
                                 {categories.map((category) => (
@@ -189,6 +200,7 @@ export default function Recipes({
                                 onChange={(e) =>
                                     handleCuisineClick(e.target.value)
                                 }
+                                data-testid="recipes-cuisine-filter"
                                 className="h-11 w-full rounded-xl border border-red-200 bg-white px-3 text-sm text-zinc-900 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-200"
                             >
                                 {cuisines.map((cuisine) => (
@@ -203,7 +215,10 @@ export default function Recipes({
                     </section>
 
                     {recipeList.length > 0 ? (
-                        <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        <section
+                            className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+                            data-testid="recipes-grid"
+                        >
                             {recipeList.map((recipe: any) => (
                                 <RecipePreview
                                     recipe={recipe}
@@ -212,12 +227,15 @@ export default function Recipes({
                             ))}
                         </section>
                     ) : (
-                        <div className="rounded-2xl border border-red-200 bg-white p-8 text-center text-zinc-600">
+                        <div
+                            className="rounded-2xl border border-red-200 bg-white p-8 text-center text-zinc-600"
+                            data-testid="recipes-empty"
+                        >
                             {emptyMessage}
                         </div>
                     )}
 
-                    <div className="mt-8">
+                    <div className="mt-8" data-testid="recipes-pagination">
                         <Pagination paginated={recipes} />
                     </div>
                 </div>
@@ -295,7 +313,10 @@ function RecipePreview({ recipe }: any) {
     }
 
     return (
-        <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-red-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+        <article
+            className="group flex h-full flex-col overflow-hidden rounded-2xl border border-red-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+            data-testid={`recipe-card-${recipe.id}`}
+        >
             <div className="relative aspect-[4/3] overflow-hidden bg-red-50">
                 <button
                     type="button"
@@ -305,6 +326,7 @@ function RecipePreview({ recipe }: any) {
                             : "Add to favorites"
                     }
                     onClick={toggleFavorite}
+                    data-testid={`recipe-favorite-toggle-${recipe.id}`}
                     className="absolute right-3 top-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border border-red-200 bg-white/95 text-red-500 shadow-sm transition hover:bg-red-50"
                 >
                     <HeartIcon filled={isFavorited} className="h-5 w-5" />
@@ -331,6 +353,7 @@ function RecipePreview({ recipe }: any) {
                     type="button"
                     aria-label={isMade ? "Mark as not made" : "Mark as made"}
                     onClick={toggleMade}
+                    data-testid={`recipe-made-toggle-${recipe.id}`}
                     className={
                         "absolute bottom-3 right-3 z-10 inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium shadow-sm transition " +
                         (isMade

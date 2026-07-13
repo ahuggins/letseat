@@ -3,10 +3,16 @@ import { Link } from "@inertiajs/react";
 
 export default function Pagination({ paginated }: { paginated: any }) {
     return (
-        <div className="overflow-hidden rounded-2xl border border-red-200 bg-white px-4 py-3 text-zinc-600 shadow-sm sm:px-6">
+        <div
+            className="overflow-hidden rounded-2xl border border-red-200 bg-white px-4 py-3 text-zinc-600 shadow-sm sm:px-6"
+            data-testid="pagination"
+        >
             <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                 <div>
-                    <p className="text-sm text-zinc-600">
+                    <p
+                        className="text-sm text-zinc-600"
+                        data-testid="pagination-summary"
+                    >
                         Showing{" "}
                         <span className="font-semibold text-zinc-900">
                             {paginated.from}
@@ -26,6 +32,7 @@ export default function Pagination({ paginated }: { paginated: any }) {
                     <nav
                         aria-label="Pagination"
                         className="isolate inline-flex -space-x-px rounded-md shadow-sm"
+                        data-testid="pagination-nav"
                     >
                         {paginated.links.map((link: any, index: any) => {
                             return (
@@ -53,6 +60,7 @@ export default function Pagination({ paginated }: { paginated: any }) {
                                                 !link.url,
                                         },
                                     )}
+                                    data-testid={`pagination-link-${index}`}
                                 >
                                     <span className="sr-only">
                                         {link.label}

@@ -7,8 +7,14 @@ export default function Nutrition({ recipe }: any) {
 
     return (
         <>
-            <div className="mx-auto max-w-sm overflow-hidden rounded-xl border border-red-200">
-                <table className="w-full text-sm leading-5">
+            <div
+                className="mx-auto max-w-sm overflow-hidden rounded-xl border border-red-200"
+                data-testid="nutrition-card"
+            >
+                <table
+                    className="w-full text-sm leading-5"
+                    data-testid="nutrition-table"
+                >
                     <thead className="bg-red-50 text-zinc-900">
                         <tr>
                             <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700">
@@ -28,6 +34,7 @@ export default function Nutrition({ recipe }: any) {
                                 <tr
                                     key={key}
                                     className="odd:bg-white even:bg-red-50/40"
+                                    data-testid={`nutrition-row-${key}`}
                                 >
                                     <td className="px-4 py-2 text-left font-medium text-zinc-800">
                                         {camelCaseToWords(key)}

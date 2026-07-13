@@ -35,10 +35,19 @@ export default function AddRecipe({ auth }: PageProps) {
         >
             <Head title="Add Recipe" />
 
-            <div className="bg-white py-6 sm:py-10">
+            <div
+                className="bg-white py-6 sm:py-10"
+                data-testid="add-recipe-page"
+            >
                 <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-                    <section className="mb-6 rounded-3xl border border-red-200 bg-gradient-to-br from-red-100 via-rose-50 to-zinc-50 p-8 shadow-sm sm:p-10">
-                        <h1 className="font-serif text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl">
+                    <section
+                        className="mb-6 rounded-3xl border border-red-200 bg-gradient-to-br from-red-100 via-rose-50 to-zinc-50 p-8 shadow-sm sm:p-10"
+                        data-testid="add-recipe-hero"
+                    >
+                        <h1
+                            className="font-serif text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl"
+                            data-testid="add-recipe-title"
+                        >
                             Add a New Recipe
                         </h1>
                         <p className="mt-3 max-w-2xl text-lg text-zinc-600">
@@ -47,8 +56,15 @@ export default function AddRecipe({ auth }: PageProps) {
                         </p>
                     </section>
 
-                    <section className="overflow-hidden rounded-2xl border border-red-200 bg-white p-6 shadow-sm sm:p-8">
-                        <form onSubmit={handleSubmit} className="space-y-4">
+                    <section
+                        className="overflow-hidden rounded-2xl border border-red-200 bg-white p-6 shadow-sm sm:p-8"
+                        data-testid="add-recipe-form-section"
+                    >
+                        <form
+                            onSubmit={handleSubmit}
+                            className="space-y-4"
+                            data-testid="add-recipe-form"
+                        >
                             <div>
                                 <label
                                     htmlFor="url"
@@ -60,6 +76,7 @@ export default function AddRecipe({ auth }: PageProps) {
                                     onChange={handleChange}
                                     id="url"
                                     value={values.url}
+                                    data-testid="add-recipe-url-input"
                                     className="h-11 w-full rounded-xl border border-red-200 bg-red-50 px-4 text-sm text-zinc-900 placeholder:text-zinc-500 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-200"
                                     placeholder="https://example.com/recipe"
                                 />
@@ -69,6 +86,7 @@ export default function AddRecipe({ auth }: PageProps) {
                                 <button
                                     className="rounded-full bg-red-500 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-600"
                                     type="submit"
+                                    data-testid="add-recipe-submit"
                                 >
                                     Import Recipe
                                 </button>
