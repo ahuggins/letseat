@@ -32,9 +32,11 @@ export default function Recipe({ auth, recipe }: any) {
                             <div>
                                 <Link
                                     href="/recipes"
-                                    className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-red-700 transition-colors hover:text-red-900"
+                                    className="mb-4 inline-flex items-center gap-2 rounded-full border border-red-200 bg-white px-2.5 py-1.5 text-sm font-medium text-red-700 transition-colors hover:bg-red-50 hover:text-red-900"
                                 >
-                                    <BackIcon />
+                                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-100 text-red-700">
+                                        <BackIcon className="size-4" />
+                                    </span>
                                     Back to recipes
                                 </Link>
                                 <h1 className="font-serif text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl">
@@ -103,10 +105,7 @@ export default function Recipe({ auth, recipe }: any) {
                         </div>
 
                         <div className="space-y-6">
-                            <div className="overflow-hidden rounded-2xl border border-red-200 bg-white p-5 shadow-sm">
-                                <h3 className="mb-4 font-serif text-xl font-semibold text-zinc-900">
-                                    Nutrition
-                                </h3>
+                            <div>
                                 {recipe.nutrition !== "" ? (
                                     <Nutrition recipe={recipe} />
                                 ) : (

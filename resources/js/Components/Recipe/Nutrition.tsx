@@ -12,7 +12,7 @@ export default function Nutrition({ recipe }: any) {
                     <thead className="bg-red-50 text-zinc-900">
                         <tr>
                             <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700">
-                                Nutrient
+                                Nutrition
                             </th>
                             <th className="py-1.5 px-4 text-left">
                                 {/* Amount per Serving (100g) */}
