@@ -9,6 +9,7 @@ import AddedBy from "@/Components/Recipe/AddedBy";
 import ApplicationLogo from "@/Components/ApplicationLogo";
 
 export default function Recipe({ auth, recipe }: any) {
+    const recipeName = decodeHtmlEntities(recipe.name || "");
     const ingredients = Array.isArray(recipe.ingredients)
         ? recipe.ingredients
         : [];
@@ -19,11 +20,11 @@ export default function Recipe({ auth, recipe }: any) {
             user={auth.user}
             header={
                 <h2 className="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-                    {recipe.name}
+                    {recipeName}
                 </h2>
             }
         >
-            <Head title={recipe.name} />
+            <Head title={recipeName} />
 
             <div className="bg-white py-6 sm:py-10">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -40,7 +41,7 @@ export default function Recipe({ auth, recipe }: any) {
                                     Back to recipes
                                 </Link>
                                 <h1 className="font-serif text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl">
-                                    {recipe.name}
+                                    {recipeName}
                                 </h1>
                                 <div className="mt-3 flex items-center gap-3 text-sm text-zinc-600">
                                     <AddedBy recipe={recipe} />
@@ -55,7 +56,7 @@ export default function Recipe({ auth, recipe }: any) {
 
                         <div className="mt-4">
                             <ExternalLinkRow
-                                name={recipe.site_name || recipe.name}
+                                name={recipe.site_name || recipeName}
                                 siteLink={
                                     recipe.site_link || recipe.site_domain
                                 }
@@ -71,7 +72,7 @@ export default function Recipe({ auth, recipe }: any) {
                                     <div className="h-80 overflow-hidden rounded-xl bg-red-50">
                                         <RecipeImage
                                             image={recipe.image}
-                                            name={recipe.name}
+                                            name={recipeName}
                                         />
                                     </div>
 
@@ -132,6 +133,17 @@ export default function Recipe({ auth, recipe }: any) {
             </div>
         </AuthenticatedLayout>
     );
+}
+
+function decodeHtmlEntities(value: string): string {
+    if (!value || typeof document === "undefined") {
+        return value;
+    }
+
+    const textarea = document.createElement("textarea");
+    textarea.innerHTML = value;
+
+    return textarea.value;
 }
 
 function RecipeImage({ image, name }: { image: any; name: string }) {
