@@ -18,10 +18,16 @@ export default function Login({
     status,
     canResetPassword,
     environment,
+    featuredRecipe,
 }: {
     status?: string;
     canResetPassword: boolean;
     environment: string;
+    featuredRecipe?: {
+        id: number;
+        name: string;
+        image: string;
+    } | null;
 }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         email: "",
@@ -59,7 +65,7 @@ export default function Login({
     };
 
     return (
-        <GuestLayout>
+        <GuestLayout featuredRecipe={featuredRecipe}>
             <Head title="Log in" />
 
             {status && (
