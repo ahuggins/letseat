@@ -153,6 +153,7 @@ export default function Login({
                         <Checkbox
                             name="remember"
                             checked={data.remember}
+                            className="border-red-300 bg-red-50 text-red-600 focus:ring-red-500 dark:border-red-300 dark:bg-red-50"
                             onChange={(e) =>
                                 setData("remember", e.target.checked)
                             }
