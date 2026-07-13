@@ -19,7 +19,12 @@ export default function Recipes({
     recipes: any;
     categories: string[];
     cuisines: string[];
-    filters: { q?: string; category?: string; cuisine?: string; user?: string | null };
+    filters: {
+        q?: string;
+        category?: string;
+        cuisine?: string;
+        user?: string | null;
+    };
     pageTitle?: string;
     emptyMessage?: string;
 }) {
@@ -65,7 +70,11 @@ export default function Recipes({
         return () => window.clearTimeout(timeout);
     }, [searchQuery]);
 
-    function visitWithFilters(nextQuery: string, nextCategory: string, nextCuisine: string) {
+    function visitWithFilters(
+        nextQuery: string,
+        nextCategory: string,
+        nextCuisine: string,
+    ) {
         const params: Record<string, string> = {};
 
         const q = nextQuery.trim();
@@ -259,7 +268,10 @@ function RecipePreview({ recipe }: any) {
         e.preventDefault();
         e.stopPropagation();
 
-        const url = route(isMade ? "recipes.unmade" : "recipes.made", recipe.id);
+        const url = route(
+            isMade ? "recipes.unmade" : "recipes.made",
+            recipe.id,
+        );
 
         if (isMade) {
             router.delete(url, {
@@ -288,7 +300,9 @@ function RecipePreview({ recipe }: any) {
                 <button
                     type="button"
                     aria-label={
-                        isFavorited ? "Remove from favorites" : "Add to favorites"
+                        isFavorited
+                            ? "Remove from favorites"
+                            : "Add to favorites"
                     }
                     onClick={toggleFavorite}
                     className="absolute right-3 top-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border border-red-200 bg-white/95 text-red-500 shadow-sm transition hover:bg-red-50"
