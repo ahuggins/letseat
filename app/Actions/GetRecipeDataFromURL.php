@@ -28,28 +28,16 @@ class GetRecipeDataFromURL
 
         $what = $scraper->filter("//*[@type='application/ld+json']")->reduce(function (Crawler $node, $i): bool {
 
-            // dump($i);
-
-            // if ($i === 1) {
-
             $content = json_decode($node->text());
 
             $content = property_exists($content, '@graph') ? $content->{'@graph'} : $content;
 
-            // dump($content);
-
-            $hasRecipe = false;
-
             if (is_array($content)) {
-                $hasRecipe = count(array_filter($content, fn ($node) => $node->{'@type'} === 'Recipe')) > 0;
+                return count(array_filter($content, fn ($node) => $node->{'@type'} === 'Recipe')) > 0;
             } else {
-                $hasRecipe = $content->{'@type'} === 'Recipe';
+                return $content->{'@type'} === 'Recipe';
             }
-            // }
 
-            // dump($hasRecipe, 'hasReceipe');
-
-            return $hasRecipe;
         });
 
         // dd($what->text(), 'the recipe');

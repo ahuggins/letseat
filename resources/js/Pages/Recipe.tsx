@@ -11,11 +11,6 @@ import { formatRecipe } from "./recipe-functions";
 import ApplicationLogo from "@/Components/ApplicationLogo";
 
 export default function Recipe({ auth, recipe }: any) {
-    const { originalLink, siteLink, jsonRecipe, name } = formatRecipe(recipe);
-
-    let d = auth;
-    // console.log({ jsonRecipe, recipe });
-
     return (
         <AuthenticatedLayout
             user={auth.user}
@@ -49,9 +44,9 @@ export default function Recipe({ auth, recipe }: any) {
                                     </div>
 
                                     <ExternalLinkRow
-                                        name={name}
-                                        siteLink={siteLink}
-                                        originalLink={originalLink}
+                                        name={recipe.name}
+                                        siteLink={recipe.site_link || recipe.site_domain}
+                                        originalLink={recipe.url}
                                     />
                                 </div>
                                 <div className="flex flex-col sm:flex-row gap-4 justify-between">
@@ -59,13 +54,15 @@ export default function Recipe({ auth, recipe }: any) {
                                         <div className="flex gap-8">
                                             <div className="w-72 h-72">
                                                 <RecipeImage
-                                                    json={jsonRecipe}
+                                                    json={{
+                                                        image: [recipe.image],
+                                                    }}
                                                 />
                                             </div>
                                             <div className="flex-shrink w-1/2">
                                                 <ul className="list-disc">
                                                     {recipe.ingredients.map(
-                                                        toLiElement
+                                                        toLiElement,
                                                     )}
                                                 </ul>
                                             </div>
@@ -192,8 +189,8 @@ function CommentInput({ auth, recipe }: any) {
     async function handleSubmit(e: any) {
         e.preventDefault();
         let response = await router.post(
-            `/comment/recipe/${recipe.id}`,
-            values
+            `/comment/new-recipe/${recipe.id}`,
+            values,
         );
 
         setValues((prev) => ({ ...prev, comment: "" }));

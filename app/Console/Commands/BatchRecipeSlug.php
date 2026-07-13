@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Recipe;
+use App\Models\NewRecipe;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 
@@ -27,7 +27,7 @@ class BatchRecipeSlug extends Command
      */
     public function handle()
     {
-        $recipes = Recipe::where('slug', null)->get();
+        $recipes = NewRecipe::query()->where('slug', null)->get();
 
         $recipes->each(function ($recipe, int $key) {
             $recipe->slug = Str::slug($recipe->name);

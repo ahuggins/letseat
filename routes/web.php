@@ -9,8 +9,6 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-    // return 'working';
-
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
@@ -25,39 +23,25 @@ Route::get('/dashboard', function () {
 
 Route::get('/recipes', function (Request $request) {
     if ($request->query('user')) {
-        $recipes = App\Models\Recipe::where('user_id', (int) $request->query('user'))->orderBy('created_at', 'desc')->paginate();
+        $recipes = App\Models\NewRecipe::where('user_id', (int) $request->query('user'))->orderBy('created_at', 'desc')->paginate();
     } else {
-        $recipes = App\Models\Recipe::orderBy('created_at', 'desc')->paginate();
+        $recipes = App\Models\NewRecipe::orderBy('created_at', 'desc')->paginate();
     }
-
-    // dd($recipes);
 
     return Inertia::render('Recipes', ['recipes' => $recipes]);
 })->middleware(['auth', 'verified'])->name('recipes');
 
-Route::get('/recipe/{recipe:slug}', function (App\Models\Recipe $recipe) {
+Route::get('/recipe/{recipe:slug}', function (App\Models\NewRecipe $recipe) {
     return Inertia::render('Recipe', ['recipe' => $recipe]);
 })->middleware(['auth', 'verified'])->name('recipe');
 
 Route::get('/search', function (Request $request) {
-    $recipes = App\Models\Recipe::search($request->query('q'))->options([
+    $recipes = App\Models\NewRecipe::search($request->query('q'))->options([
         'query_by' => 'name,ingredients',
     ])->paginate();
 
     return Inertia::render('Search', ['recipes' => ['data' => $recipes]]);
 })->middleware(['auth', 'verified'])->name('search');
-
-// Route::delete('/recipe/{recipe:slug}', function (App\Models\Recipe $recipe) {
-//     if (auth()->user()->email !== 'andrewhuggins@gmail.com') {
-//         return;
-//     }
-
-//     $recipe->delete();
-
-//     return to_route('recipes');
-
-//     // return Inertia::render('Recipe', ['recipe' => $recipe]);
-// })->middleware(['auth', 'verified'])->name('recipe');
 
 Route::get('/add-recipe', function () {
     return Inertia::render('AddRecipe');

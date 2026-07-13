@@ -10,6 +10,12 @@ type FormattedRecipe = {
 }
 
 export function formatRecipe(recipe: any): FormattedRecipe {
+    if(typeof recipe.content === 'string') {
+        recipe.content = JSON.parse(recipe.content);
+    }
+    if(typeof recipe.nutrition === 'string' && recipe.nutrition !== ''){
+        recipe.nutrition = JSON.parse(recipe.nutrition);
+    }
     if(hasGraph(recipe)) {
         return formatGraphRecipe(recipe);
     }
@@ -18,14 +24,14 @@ export function formatRecipe(recipe: any): FormattedRecipe {
 
 // if there is no "@graph" key.
 function formatRegularRecipe(recipe: any): FormattedRecipe {
-    // console.log({ recipe });
+    // console.log({ parsed: JSON.parse(recipe.content) });
     return {
         originalLink: recipe.content.url,
         siteLink: recipe.content.url ? new URL(recipe.content.url).origin : new URL(recipe.url).origin,
         recipeLink: `/recipe/${recipe.slug}`,
         graph:  recipe.content,
         jsonRecipe: recipe.content,
-        name: recipe.content.author.name,
+        name: recipe?.content?.author?.name,
         description: recipe.content.description,
     };
 }
@@ -40,7 +46,7 @@ function formatGraphRecipe(recipe:any): FormattedRecipe {
         recipeLink: `/recipe/${recipe.slug}`,
         graph:  graph["@graph"],
         jsonRecipe: graph.find((node: any) => node["@type"] === "Recipe"),
-        name: graph[5].name,
+        name: graph[5]?.name,
         description: graph[1].description,
         image,
     };

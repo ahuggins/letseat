@@ -57,7 +57,7 @@ class Recipe extends Model
     {
         return Attribute::make(
             get: fn (string $value) => json_decode($value),
-            set: fn (string $value) => html_entity_decode($value)
+            set: fn ($value) => $value
         );
     }
 
@@ -65,7 +65,7 @@ class Recipe extends Model
     {
         return Attribute::make(
             get: fn (string $value) => json_decode($value),
-            set: fn (string $value) => html_entity_decode($value)
+            set: fn ($value) => html_entity_decode(json_encode($value))
         );
     }
 

@@ -16,6 +16,8 @@ export default function Recipes({
     auth: any;
     recipes: any;
 }) {
+    const results = recipes?.data?.data ?? [];
+
     return (
         <AuthenticatedLayout
             user={auth.user}
@@ -31,8 +33,8 @@ export default function Recipes({
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-t-lg">
                         <div className="flex p-4 gap-4 flex-col">
-                            {recipes.data.data.length > 0 ? (
-                                recipes.data.data.map(
+                            {results.length > 0 ? (
+                                results.map(
                                     (recipe: any, index: any) => (
                                         <SearchPreview
                                             recipe={recipe}
@@ -64,18 +66,16 @@ function SearchPreview({ recipe }: any) {
         name,
         description,
     } = formatRecipe(recipe);
-    console.log({ siteLink, originalLink, name: recipe.name });
+
+    const imageUrl = getImageUrl(jsonRecipe);
+
     return (
         <div className="bg-white p-4 flex gap-4 rounded-lg">
             <div className="w-32 h-32 flex-shrink-0">
-                {jsonRecipe.hasOwnProperty("image") ? (
+                {imageUrl ? (
                     <Link href={recipeLink}>
                         <img
-                            src={
-                                typeof jsonRecipe.image[0] === "string"
-                                    ? jsonRecipe.image[0]
-                                    : jsonRecipe.image[0].url
-                            }
+                            src={imageUrl}
                             alt=""
                             className="h-full w-full object-cover"
                         />
@@ -105,4 +105,36 @@ function SearchPreview({ recipe }: any) {
             </div>
         </div>
     );
+}
+
+function getImageUrl(jsonRecipe: any): string | null {
+    if (!jsonRecipe || !Object.prototype.hasOwnProperty.call(jsonRecipe, "image")) {
+        return null;
+    }
+
+    const image = jsonRecipe.image;
+
+    if (typeof image === "string") {
+        return image;
+    }
+
+    if (Array.isArray(image)) {
+        const firstImage = image[0];
+
+        if (typeof firstImage === "string") {
+            return firstImage;
+        }
+
+        if (firstImage && typeof firstImage === "object") {
+            return firstImage.url ?? firstImage.contentUrl ?? null;
+        }
+
+        return null;
+    }
+
+    if (image && typeof image === "object") {
+        return image.url ?? image.contentUrl ?? null;
+    }
+
+    return null;
 }

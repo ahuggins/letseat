@@ -44,27 +44,28 @@ export default function Recipes({
 }
 
 function RecipePreview({ recipe }: any) {
-    const {
-        originalLink,
-        siteLink,
-        recipeLink,
-        graph,
-        jsonRecipe,
-        name,
-        description,
-    } = formatRecipe(recipe);
-    console.log({ siteLink, originalLink, name: recipe.name });
+    // return <div>preview</div>;
+    // console.log({ preview: recipe });
+    // const {
+    //     originalLink,
+    //     siteLink,
+    //     recipeLink,
+    //     graph,
+    //     jsonRecipe,
+    //     name,
+    //     description,
+    // } = formatRecipe(recipe);
+    // console.log({ siteLink, originalLink, name: recipe.name });
+    // console.log({ name });
+
+    // console.log({ url: recipe.url, recipe });
     return (
         <div className="bg-white p-4 flex gap-4 rounded-lg">
             <div className="w-72 h-72 flex-shrink-0">
-                {jsonRecipe.hasOwnProperty("image") ? (
-                    <Link href={recipeLink}>
+                {recipe.image ? (
+                    <Link href={`/${recipe.slug}`}>
                         <img
-                            src={
-                                typeof jsonRecipe.image[0] === "string"
-                                    ? jsonRecipe.image[0]
-                                    : jsonRecipe.image[0].url
-                            }
+                            src={recipe.image}
                             alt=""
                             className="h-full w-full object-cover"
                         />
@@ -77,7 +78,7 @@ function RecipePreview({ recipe }: any) {
                 <div>
                     <div className="text-2xl font-medium">
                         <Link
-                            href={recipeLink}
+                            href={`recipe/${recipe.slug}`}
                             className="text-slate-600 hover:text-slate-800"
                             target="_blank"
                         >
@@ -85,11 +86,13 @@ function RecipePreview({ recipe }: any) {
                         </Link>
                     </div>
                     <ExternalLinkRow
-                        name={name}
-                        siteLink={siteLink}
-                        originalLink={originalLink}
+                        name={recipe.site_name}
+                        siteLink={recipe.site_domain}
+                        // originalLink={originalLink}
                     />
-                    <div className="text-xl text-slate-700">{description}</div>
+                    <div className="text-xl text-slate-700">
+                        {recipe.description}
+                    </div>
                 </div>
                 <div className="flex items-center gap-4 text-sm">
                     <AddedBy recipe={recipe} />
