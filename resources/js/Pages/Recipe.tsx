@@ -1,16 +1,19 @@
 import React, { useState } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link, router } from "@inertiajs/react";
-import { PageProps } from "@/types";
 import ExternalLinkRow from "@/Components/Recipe/ExternalLinkRow";
 import Directions from "@/Components/Recipe/Directions";
 import Nutrition from "@/Components/Recipe/Nutrition";
 import BackIcon from "@/Components/Icons/BackIcon";
 import AddedBy from "@/Components/Recipe/AddedBy";
-import { formatRecipe } from "./recipe-functions";
 import ApplicationLogo from "@/Components/ApplicationLogo";
 
 export default function Recipe({ auth, recipe }: any) {
+    const ingredients = Array.isArray(recipe.ingredients)
+        ? recipe.ingredients
+        : [];
+    const category = normalizeCategory(recipe.category);
+
     return (
         <AuthenticatedLayout
             user={auth.user}
@@ -22,151 +25,163 @@ export default function Recipe({ auth, recipe }: any) {
         >
             <Head title={recipe.name} />
 
-            <div className="py-4">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg ">
-                        <div className="flex p-4 gap-4 flex-col">
-                            <div className="bg-white p-4 rounded-lg">
-                                <div>
-                                    <div className="flex justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div>
-                                                <Link href="/recipes">
-                                                    <BackIcon />
-                                                </Link>
-                                            </div>
-
-                                            <div className="text-2xl font-medium">
-                                                {recipe.name}{" "}
-                                            </div>
-                                            <AddedBy recipe={recipe} />
-                                        </div>
-                                    </div>
-
-                                    <ExternalLinkRow
-                                        name={recipe.name}
-                                        siteLink={
-                                            recipe.site_link ||
-                                            recipe.site_domain
-                                        }
-                                        originalLink={recipe.url}
-                                    />
-                                </div>
-                                <div className="flex flex-col sm:flex-row gap-4 justify-between">
-                                    <div className="sm:w-3/5">
-                                        <div className="flex gap-8">
-                                            <div className="w-72 h-72">
-                                                <RecipeImage
-                                                    json={{
-                                                        image: [recipe.image],
-                                                    }}
-                                                />
-                                            </div>
-                                            <div className="flex-shrink w-1/2">
-                                                <ul className="list-disc">
-                                                    {recipe.ingredients.map(
-                                                        toLiElement,
-                                                    )}
-                                                </ul>
-                                            </div>
-                                        </div>
-
-                                        <Directions recipe={recipe} />
-                                    </div>
-                                    <div className="sm:w-1/3">
-                                        {recipe.nutrition !== "" && (
-                                            <Nutrition recipe={recipe} />
-                                        )}
-                                        <div className="mt-8 bg-slate-100 rounded-lg">
-                                            <Comments
-                                                comments={recipe.comments}
-                                            />
-                                        </div>
-                                        <div className="mt-4">
-                                            <CommentInput
-                                                auth={auth}
-                                                recipe={recipe}
-                                            />
-                                        </div>
-                                    </div>
+            <div className="bg-white py-6 sm:py-10">
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <section className="mb-6 rounded-3xl border border-red-200 bg-gradient-to-br from-red-100 via-rose-50 to-zinc-50 p-8 shadow-sm sm:p-10">
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                            <div>
+                                <Link
+                                    href="/recipes"
+                                    className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-red-700 transition-colors hover:text-red-900"
+                                >
+                                    <BackIcon />
+                                    Back to recipes
+                                </Link>
+                                <h1 className="font-serif text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl">
+                                    {recipe.name}
+                                </h1>
+                                <div className="mt-3 flex items-center gap-3 text-sm text-zinc-600">
+                                    <AddedBy recipe={recipe} />
+                                    {category && (
+                                        <span className="rounded-full bg-red-500 px-3 py-1 text-xs font-medium text-white">
+                                            {category}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         </div>
-                    </div>
+
+                        <div className="mt-4">
+                            <ExternalLinkRow
+                                name={recipe.site_name || recipe.name}
+                                siteLink={
+                                    recipe.site_link || recipe.site_domain
+                                }
+                                originalLink={recipe.url}
+                            />
+                        </div>
+                    </section>
+
+                    <section className="grid gap-6 lg:grid-cols-3">
+                        <div className="space-y-6 lg:col-span-2">
+                            <div className="overflow-hidden rounded-2xl border border-red-200 bg-white p-4 shadow-sm sm:p-6">
+                                <div className="grid gap-6 md:grid-cols-[320px_minmax(0,1fr)]">
+                                    <div className="h-80 overflow-hidden rounded-xl bg-red-50">
+                                        <RecipeImage
+                                            image={recipe.image}
+                                            name={recipe.name}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <h2 className="font-serif text-2xl font-semibold text-zinc-900">
+                                            Ingredients
+                                        </h2>
+
+                                        {ingredients.length > 0 ? (
+                                            <ul className="mt-4 space-y-2 text-zinc-700">
+                                                {ingredients.map(toLiElement)}
+                                            </ul>
+                                        ) : (
+                                            <p className="mt-4 text-sm text-zinc-500">
+                                                Ingredients are not available
+                                                for this recipe yet.
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="overflow-hidden rounded-2xl border border-red-200 bg-white p-6 shadow-sm">
+                                <h2 className="mb-2 font-serif text-2xl font-semibold text-zinc-900">
+                                    Directions
+                                </h2>
+                                <div className="text-zinc-700">
+                                    <Directions recipe={recipe} />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div className="overflow-hidden rounded-2xl border border-red-200 bg-white p-5 shadow-sm">
+                                <h3 className="mb-4 font-serif text-xl font-semibold text-zinc-900">
+                                    Nutrition
+                                </h3>
+                                {recipe.nutrition !== "" ? (
+                                    <Nutrition recipe={recipe} />
+                                ) : (
+                                    <p className="text-sm text-zinc-500">
+                                        Nutrition info unavailable.
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className="overflow-hidden rounded-2xl border border-red-200 bg-white shadow-sm">
+                                <div className="border-b border-red-100 px-5 py-4">
+                                    <h3 className="font-serif text-xl font-semibold text-zinc-900">
+                                        Comments
+                                    </h3>
+                                </div>
+                                <Comments comments={recipe.comments || []} />
+                                <div className="border-t border-red-100 p-4">
+                                    <CommentInput auth={auth} recipe={recipe} />
+                                </div>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </div>
         </AuthenticatedLayout>
     );
 }
 
-function RecipeImage({ json }: { json: any }) {
-    if (json.hasOwnProperty("image")) {
+function RecipeImage({ image, name }: { image: any; name: string }) {
+    if (image) {
         return (
             <img
-                src={
-                    typeof json.image[0] === "string"
-                        ? json.image[0]
-                        : json.image[0].url
-                }
-                alt=""
+                src={image}
+                alt={name}
                 className="w-full h-full object-cover"
             />
         );
     }
-    return <ApplicationLogo color="orange" size="w-full" />;
+
+    return <ApplicationLogo color="red" size="w-full" />;
 }
 
 function toLiElement(item: any, index: any) {
     return (
-        <li key={index} className="flex-shrink">
+        <li key={index} className="flex items-start gap-2">
+            <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red-500" />
             {item}
         </li>
     );
 }
 
 function Comment({ comment }: any) {
-    let date = new Date(comment.created_at);
     return (
-        <div className="odd:bd-slate-100 even:bg-white px-4 py-1.5 ">
-            {/* <CommentImage /> */}
-
-            <div className="flex items-center gap-8 justify-between">
-                <h4 className="text-base text-slate-600">
+        <div className="border-b border-red-100 px-4 py-3 last:border-b-0">
+            <div className="flex items-center justify-between gap-4">
+                <h4 className="text-sm font-medium text-zinc-700">
                     {comment.commentator.name}
                 </h4>
-                <div className="text-slate-500 text-sm">
-                    {/* {readableDateTime(date)} */}
-                </div>
             </div>
-            <p className="mt-1 text-slate-800 text-lg">{comment.comment}</p>
-        </div>
-    );
-}
-
-function CommentImage() {
-    return (
-        <div className="mb-4 flex-shrink-0 sm:mb-0 sm:mr-4">
-            <svg
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 200 200"
-                preserveAspectRatio="none"
-                aria-hidden="true"
-                className="h-16 w-16 border border-gray-300 bg-white text-gray-300"
-            >
-                <path
-                    d="M0 0l200 200M0 200L200 0"
-                    strokeWidth={1}
-                    vectorEffect="non-scaling-stroke"
-                />
-            </svg>
+            <p className="mt-1 text-zinc-800">{comment.comment}</p>
         </div>
     );
 }
 
 function Comments({ comments }: any) {
+    if (!comments.length) {
+        return (
+            <div className="px-4 py-6 text-sm text-zinc-500">
+                No comments yet. Be the first to leave one.
+            </div>
+        );
+    }
+
     return (
-        <div className="flex flex-col ">
+        <div className="flex flex-col">
             {comments.map((comment: any) => (
                 <Comment key={comment.id} comment={comment} />
             ))}
@@ -183,57 +198,42 @@ function CommentInput({ auth, recipe }: any) {
     function handleChange(e: any) {
         const key = e.target.id;
         const value = e.target.value;
-        setValues((values) => ({
-            ...values,
+        setValues((prev: any) => ({
+            ...prev,
             [key]: value,
         }));
     }
 
     async function handleSubmit(e: any) {
         e.preventDefault();
-        let response = await router.post(
-            `/comment/new-recipe/${recipe.id}`,
-            values,
-        );
+        await router.post(`/comment/new-recipe/${recipe.id}`, values);
 
         setValues((prev) => ({ ...prev, comment: "" }));
     }
+
     return (
         <form onSubmit={handleSubmit}>
             <textarea
                 id="comment"
                 onChange={handleChange}
-                className="w-full border border-slate-300 rounded"
+                className="w-full rounded-xl border border-red-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-500 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-200"
+                placeholder="Add your comment"
                 value={values.comment}
             />
-            <button type="submit" className="bg-slate-200 px-3 py-1 rounded-md">
+            <button
+                type="submit"
+                className="mt-3 rounded-full bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600"
+            >
                 Comment
             </button>
         </form>
     );
 }
 
-// function readableDateTime(date: Date): string {
-//     let readable = null;
+function normalizeCategory(value: any): string {
+    if (typeof value === "string") {
+        return value.split(",")[0]?.trim() ?? "";
+    }
 
-//     let formatDate = {
-//         // weekday: "short",
-
-//         month: "short",
-//         day: "numeric",
-//         year: "numeric",
-//         // year: "short",
-//     };
-
-//     if (date.getFullYear() !== new Date().getFullYear()) {
-//         formatDate.year = "2-digit";
-//     }
-
-//     readable = date.toLocaleDateString(undefined, formatDate);
-//     readable += " at ";
-//     readable += date.toLocaleTimeString(undefined, {
-//         hour: "2-digit",
-//         minute: "2-digit",
-//     });
-//     return readable;
-// }
+    return "";
+}

@@ -7,11 +7,11 @@ export default function Nutrition({ recipe }: any) {
 
     return (
         <>
-            <div className="rounded-lg overflow-hidden max-w-sm mx-auto">
+            <div className="mx-auto max-w-sm overflow-hidden rounded-xl border border-red-200">
                 <table className="w-full text-sm leading-5">
-                    <thead className="bg-slate-100 text=slate-900 font-medium text-md">
+                    <thead className="bg-red-50 text-zinc-900">
                         <tr>
-                            <th className="py-1.5 px-4 text-left">Nutrient</th>
+                            <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700">Nutrient</th>
                             <th className="py-1.5 px-4 text-left">
                                 {/* Amount per Serving (100g) */}
                             </th>
@@ -25,12 +25,12 @@ export default function Nutrition({ recipe }: any) {
                             .map((key) => (
                                 <tr
                                     key={key}
-                                    className="even:bg-slate-100 odd:bg-white"
+                                    className="odd:bg-white even:bg-red-50/40"
                                 >
-                                    <td className="py-1.5 px-4 text-left font-medium text-slate-800">
+                                    <td className="px-4 py-2 text-left font-medium text-zinc-800">
                                         {camelCaseToWords(key)}
                                     </td>
-                                    <td className="py-1.5 px-4 text-left">
+                                    <td className="px-4 py-2 text-left text-zinc-700">
                                         {nutrition[key]}
                                     </td>
                                 </tr>

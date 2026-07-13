@@ -17,18 +17,57 @@ Route::get('/', function () {
     ]);
 });
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
-
 Route::get('/recipes', function (Request $request) {
-    if ($request->query('user')) {
-        $recipes = App\Models\NewRecipe::query()->where('user_id', (int) $request->query('user'))->orderBy('created_at', 'desc')->paginate();
-    } else {
-        $recipes = App\Models\NewRecipe::query()->orderBy('created_at', 'desc')->paginate();
+    $user = $request->query('user');
+    $query = trim((string) $request->query('q', ''));
+    $category = trim((string) $request->query('category', 'All'));
+
+    $baseQuery = App\Models\NewRecipe::query();
+
+    if ($user) {
+        $baseQuery->where('user_id', (int) $user);
     }
 
-    return Inertia::render('Recipes', ['recipes' => $recipes]);
+    $recipesQuery = clone $baseQuery;
+
+    if ($query !== '') {
+        $recipesQuery->where(function ($builder) use ($query) {
+            $builder
+                ->where('name', 'like', "%{$query}%")
+                ->orWhere('description', 'like', "%{$query}%")
+                ->orWhere('ingredients', 'like', "%{$query}%")
+                ->orWhere('category', 'like', "%{$query}%");
+        });
+    }
+
+    if ($category !== '' && strcasecmp($category, 'All') !== 0) {
+        $recipesQuery->where('category', 'like', $category.'%');
+    }
+
+    $recipes = $recipesQuery
+        ->orderBy('created_at', 'desc')
+        ->paginate()
+        ->withQueryString();
+
+    $categories = (clone $baseQuery)
+        ->pluck('category')
+        ->map(function ($value) {
+            return trim(explode(',', (string) $value)[0] ?? '');
+        })
+        ->filter()
+        ->unique()
+        ->sort()
+        ->values();
+
+    return Inertia::render('Recipes', [
+        'recipes' => $recipes,
+        'categories' => $categories,
+        'filters' => [
+            'q' => $query,
+            'category' => $category !== '' ? $category : 'All',
+            'user' => $user,
+        ],
+    ]);
 })->middleware(['auth', 'verified'])->name('recipes');
 
 Route::get('/recipe/{recipe:slug}', function (App\Models\NewRecipe $recipe) {

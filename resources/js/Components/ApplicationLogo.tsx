@@ -1,16 +1,22 @@
 import { SVGAttributes } from "react";
 
 export default function ApplicationLogo(
-    props: SVGAttributes<SVGElement> & { size?: string }
+    props: SVGAttributes<SVGSVGElement> & { size?: string; color?: string }
 ) {
+    const { size, className, color, ...svgProps } = props;
+
+    const logoClassName = [size ?? "w-16 h-16", className]
+        .filter(Boolean)
+        .join(" ");
+
     return (
         <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 5333.3335 5333.3335"
             xmlSpace="preserve"
             id="svg2"
-            {...props}
-            className={props?.size ?? "w-16 h-16"}
+            {...svgProps}
+            className={logoClassName}
         >
             <g
                 transform="matrix(1.3333333,0,0,-1.3333333,0,5333.3333)"
@@ -21,7 +27,7 @@ export default function ApplicationLogo(
                         <path
                             id="path20"
                             style={{
-                                fill: props?.color ?? "white",
+                                fill: color ?? "currentColor",
                                 fillOpacity: 1,
                                 fillRule: "nonzero",
                                 stroke: "none",

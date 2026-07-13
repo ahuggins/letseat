@@ -1,4 +1,4 @@
-import { useState, PropsWithChildren, ReactNode } from "react";
+import { useState, PropsWithChildren, ReactNode, FormEvent } from "react";
 import ApplicationLogo from "@/Components/ApplicationLogo";
 import Dropdown from "@/Components/Dropdown";
 import NavLink from "@/Components/NavLink";
@@ -15,25 +15,31 @@ export default function Authenticated({
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
 
+    function handleSearchSubmit(e: FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+
+        const formData = new FormData(e.currentTarget);
+        const formValues = Object.fromEntries(formData.entries());
+
+        router.replace("/search", { data: formValues });
+    }
+
     return (
-        <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-            <nav className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+        <div className="min-h-screen bg-amber-50">
+            <nav className="sticky top-0 z-40 border-b border-red-100 bg-white/95 backdrop-blur">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between h-16">
-                        <div className="flex">
+                    <div className="flex h-16 items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
                             <div className="shrink-0 flex items-center">
-                                <Link href="/">
-                                    <ApplicationLogo className="block h-9 w-auto fill-current text-gray-800 dark:text-gray-200" />
+                                <Link href="/" className="inline-flex items-center gap-2">
+                                    <ApplicationLogo className="block h-8 w-auto fill-current text-red-600" />
+                                    <span className="font-serif text-xl font-bold text-red-700">
+                                        LetsEat
+                                    </span>
                                 </Link>
                             </div>
 
-                            <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                                <NavLink
-                                    href={route("dashboard")}
-                                    active={route().current("dashboard")}
-                                >
-                                    Dashboard
-                                </NavLink>
+                            <div className="hidden md:ms-6 md:flex md:items-center md:gap-6">
                                 <NavLink
                                     href={route("recipes")}
                                     active={route().current("recipes")}
@@ -49,14 +55,24 @@ export default function Authenticated({
                             </div>
                         </div>
 
-                        <div className="hidden sm:flex sm:items-center sm:ms-6">
+                        <div className="hidden md:flex md:flex-1 md:items-center md:justify-end md:gap-4">
+                            <form onSubmit={handleSearchSubmit} className="w-full max-w-sm">
+                                <input
+                                    type="text"
+                                    name="q"
+                                    placeholder="Search recipes..."
+                                    className="h-10 w-full rounded-full border border-red-200 bg-red-50 px-4 text-sm text-zinc-900 placeholder:text-zinc-500 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-200"
+                                    defaultValue={searchParams?.get("q") || ""}
+                                />
+                            </form>
+
                             <div className="ms-3 relative">
                                 <Dropdown>
                                     <Dropdown.Trigger>
                                         <span className="inline-flex rounded-md">
                                             <button
                                                 type="button"
-                                                className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none transition ease-in-out duration-150"
+                                                className="inline-flex items-center rounded-full border border-red-200 bg-white px-3 py-2 text-sm font-medium leading-4 text-zinc-600 transition ease-in-out duration-150 hover:text-red-700 focus:outline-none"
                                             >
                                                 {user.name}
 
@@ -94,14 +110,14 @@ export default function Authenticated({
                             </div>
                         </div>
 
-                        <div className="-me-2 flex items-center sm:hidden">
+                        <div className="-me-2 flex items-center md:hidden">
                             <button
                                 onClick={() =>
                                     setShowingNavigationDropdown(
                                         (previousState) => !previousState,
                                     )
                                 }
-                                className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-900 focus:text-gray-500 dark:focus:text-gray-400 transition duration-150 ease-in-out"
+                                className="inline-flex items-center justify-center rounded-md p-2 text-zinc-500 transition duration-150 ease-in-out hover:bg-red-100 hover:text-red-700 focus:outline-none"
                             >
                                 <svg
                                     className="h-6 w-6"
@@ -143,13 +159,18 @@ export default function Authenticated({
                         " sm:hidden"
                     }
                 >
-                    <div className="pt-2 pb-3 space-y-1">
-                        <ResponsiveNavLink
-                            href={route("dashboard")}
-                            active={route().current("dashboard")}
-                        >
-                            Dashboard
-                        </ResponsiveNavLink>
+                    <div className="space-y-3 border-t border-red-100 px-4 pb-4 pt-3">
+                        <form onSubmit={handleSearchSubmit}>
+                            <input
+                                type="text"
+                                name="q"
+                                placeholder="Search recipes..."
+                                className="h-10 w-full rounded-full border border-red-200 bg-red-50 px-4 text-sm text-zinc-900 placeholder:text-zinc-500 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-200"
+                                defaultValue={searchParams?.get("q") || ""}
+                            />
+                        </form>
+
+                        <div className="space-y-1">
                         <ResponsiveNavLink
                             href={route("recipes")}
                             active={route().current("recipes")}
@@ -162,14 +183,15 @@ export default function Authenticated({
                         >
                             Add Recipe
                         </ResponsiveNavLink>
+                        </div>
                     </div>
 
-                    <div className="pt-4 pb-1 border-t border-gray-200 dark:border-gray-600">
+                    <div className="border-t border-red-100 pb-2 pt-4">
                         <div className="px-4">
-                            <div className="font-medium text-base text-gray-800 dark:text-gray-200">
+                            <div className="text-base font-medium text-zinc-800">
                                 {user.name}
                             </div>
-                            <div className="font-medium text-sm text-gray-500">
+                            <div className="text-sm font-medium text-zinc-500">
                                 {user.email}
                             </div>
                         </div>
@@ -189,35 +211,6 @@ export default function Authenticated({
                     </div>
                 </div>
             </nav>
-
-            {header && (
-                <header className="bg-white dark:bg-gray-800 shadow">
-                    <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8  flex justify-between items-center">
-                        <div>{header}</div>
-                        <form
-                            onSubmit={(e) => {
-                                e.preventDefault();
-
-                                const formData = new FormData(e.target);
-
-                                const formValues = Object.fromEntries(
-                                    formData.entries(),
-                                );
-
-                                router.replace("/search", { data: formValues });
-                            }}
-                        >
-                            <input
-                                type="text"
-                                name="q"
-                                placeholder="Search"
-                                className="rounded-md"
-                                defaultValue={searchParams?.get("q") || ""}
-                            />
-                        </form>
-                    </div>
-                </header>
-            )}
 
             <main>{children}</main>
         </div>

@@ -7,7 +7,7 @@ export default function ExternalLinkRow({
     additional = null,
 }: any) {
     return (
-        <div className="flex gap-3  my-3">
+        <div className="my-3 flex flex-wrap gap-3">
             {siteLink && <External link={siteLink}>{name}</External>}
             {originalLink && (
                 <External link={originalLink}>Original Recipe Link</External>
@@ -23,7 +23,8 @@ function External({ link, children }: any) {
         <a
             href={link}
             target="_blank"
-            className="text-blue-500 flex gap-2 items-center"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-100 hover:text-red-900"
         >
             <ExternalLink /> {children}
         </a>

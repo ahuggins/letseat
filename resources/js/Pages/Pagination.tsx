@@ -1,16 +1,16 @@
 import classnames from "classnames";
-import { Head, Link } from "@inertiajs/react";
+import { Link } from "@inertiajs/react";
 
 export default function Pagination({ paginated }: { paginated: any }) {
     return (
-        <div className="bg-white text-slate-300 dark:bg-slate-800 overflow-hidden shadow-sm sm:rounded-b-lg flex items-center justify-between border-t border-slate-700 px-4 py-3 sm:px-6">
+        <div className="overflow-hidden rounded-2xl border border-red-200 bg-white px-4 py-3 text-zinc-600 shadow-sm sm:px-6">
             <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                 <div>
-                    <p className="text-sm text-slate-300">
+                    <p className="text-sm text-zinc-600">
                         Showing{" "}
-                        <span className="font-medium">{paginated.from}</span> to{" "}
-                        <span className="font-medium">{paginated.to}</span> of{" "}
-                        <span className="font-medium">{paginated.total}</span>{" "}
+                        <span className="font-semibold text-zinc-900">{paginated.from}</span> to{" "}
+                        <span className="font-semibold text-zinc-900">{paginated.to}</span> of{" "}
+                        <span className="font-semibold text-zinc-900">{paginated.total}</span>{" "}
                         results
                     </p>
                 </div>
@@ -30,19 +30,18 @@ export default function Pagination({ paginated }: { paginated: any }) {
                                               )
                                             : ""
                                     }
-                                    target="_blank"
                                     className={classnames(
-                                        "relative inline-flex items-center px-2 py-2  ring-1 ring-inset ring-slate-700  focus:z-20 focus:outline-offset-0",
+                                        "relative inline-flex items-center px-3 py-2 text-sm ring-1 ring-inset ring-red-200 focus:z-20 focus:outline-offset-0",
                                         {
                                             "rounded-l-md": index === 0,
-                                            "bg-slate-500 text-blue-100":
+                                            "bg-red-500 text-white":
                                                 link.active,
                                             "rounded-r-md":
                                                 index ===
                                                 paginated.links.length - 1,
-                                            "cursor-pointer hover:bg-slate-500 text-slate-200":
+                                            "cursor-pointer bg-white text-zinc-700 hover:bg-red-100":
                                                 link.url,
-                                            "cursor-not-allowed text-gray-400":
+                                            "cursor-not-allowed bg-red-50/60 text-zinc-400":
                                                 !link.url,
                                         }
                                     )}
