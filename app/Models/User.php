@@ -72,4 +72,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(PrivateRecipeNote::class);
     }
+
+    public function noteSharesGiven()
+    {
+        return $this->hasMany(PrivateNoteShare::class, 'owner_user_id');
+    }
+
+    public function noteSharesReceived()
+    {
+        return $this->hasMany(PrivateNoteShare::class, 'viewer_user_id');
+    }
 }

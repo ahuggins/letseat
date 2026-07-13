@@ -1,3 +1,61 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+	.markdown-note a {
+		@apply font-medium text-red-700 underline decoration-red-300 underline-offset-4 transition-colors hover:text-red-900;
+	}
+
+	.markdown-note p + p {
+		@apply mt-3;
+	}
+
+	.markdown-note ul {
+		@apply my-3 list-disc space-y-1 pl-5;
+	}
+
+	.markdown-note ol {
+		@apply my-3 list-decimal space-y-1 pl-5;
+	}
+
+	.markdown-note h1,
+	.markdown-note h2,
+	.markdown-note h3,
+	.markdown-note h4 {
+		@apply mt-4 mb-2 font-semibold text-zinc-900;
+	}
+
+	.markdown-note h1 {
+		@apply text-xl;
+	}
+
+	.markdown-note h2 {
+		@apply text-lg;
+	}
+
+	.markdown-note h3,
+	.markdown-note h4 {
+		@apply text-base;
+	}
+
+	.markdown-note code {
+		@apply rounded bg-red-100 px-1.5 py-0.5 font-mono text-xs text-zinc-800;
+	}
+
+	.markdown-note pre {
+		@apply my-3 overflow-x-auto rounded-xl border border-red-200 bg-red-50 p-3;
+	}
+
+	.markdown-note pre code {
+		@apply bg-transparent p-0 text-xs;
+	}
+
+	.markdown-note blockquote {
+		@apply my-3 border-l-4 border-red-200 pl-3 italic text-zinc-700;
+	}
+
+	.markdown-note hr {
+		@apply my-4 border-red-200;
+	}
+}

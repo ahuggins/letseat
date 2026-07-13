@@ -10,7 +10,13 @@ import BackIcon from "@/Components/Icons/BackIcon";
 import AddedBy from "@/Components/Recipe/AddedBy";
 import ApplicationLogo from "@/Components/ApplicationLogo";
 
-export default function Recipe({ auth, recipe, privateNotes = [] }: any) {
+export default function Recipe({
+    auth,
+    recipe,
+    privateNotes = [],
+    sharedNotes = [],
+    isSharingNotes = false,
+}: any) {
     const recipeName = decodeHtmlEntities(recipe.name || "");
     const ingredients = Array.isArray(recipe.ingredients)
         ? recipe.ingredients
@@ -148,6 +154,8 @@ export default function Recipe({ auth, recipe, privateNotes = [] }: any) {
                                 auth={auth}
                                 recipe={recipe}
                                 privateNotes={privateNotes}
+                                sharedNotes={sharedNotes}
+                                isSharingNotes={isSharingNotes}
                             />
                         </div>
 
@@ -298,13 +306,48 @@ function CommentInput({ auth, recipe }: any) {
     );
 }
 
-function PrivateNotesSection({ auth, recipe, privateNotes }: any) {
+function PrivateNotesSection({
+    auth,
+    recipe,
+    privateNotes,
+    sharedNotes,
+    isSharingNotes,
+}: any) {
     const [values, setValues] = useState({
         user_id: auth.user.id,
         note: "",
     });
     const [editingId, setEditingId] = useState<number | null>(null);
     const [editingNote, setEditingNote] = useState("");
+    const [notesFilter, setNotesFilter] = useState<"all" | "mine" | "shared">(
+        "all",
+    );
+    const notesForDisplay = [
+        ...privateNotes.map((note: any) => ({
+            ...note,
+            _source: "mine",
+            _ownerLabel: "You",
+        })),
+        ...sharedNotes.map((note: any) => ({
+            ...note,
+            _source: "shared",
+            _ownerLabel: note.user?.name || "Unknown user",
+        })),
+    ].sort(
+        (a: any, b: any) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    );
+    const filteredNotes = notesForDisplay.filter((note: any) => {
+        if (notesFilter === "mine") {
+            return note._source === "mine";
+        }
+
+        if (notesFilter === "shared") {
+            return note._source === "shared";
+        }
+
+        return true;
+    });
 
     async function handleCreate(e: any) {
         e.preventDefault();
@@ -357,58 +400,132 @@ function PrivateNotesSection({ auth, recipe, privateNotes }: any) {
         >
             <div className="mb-4">
                 <h2 className="font-serif text-2xl font-semibold text-zinc-900">
-                    Private Notes
+                    Notes
                 </h2>
                 <p className="mt-1 text-sm text-zinc-600">
-                    Only you can see these notes.
+                    {isSharingNotes
+                        ? "Notes are shown in time order. You are sharing your notes with users from your profile settings."
+                        : "Notes are shown in time order. Shared notes from others will appear here too."}
                 </p>
             </div>
 
-            {privateNotes.length ? (
-                <div
-                    className="mb-5 space-y-3"
-                    data-testid="recipe-private-notes-list"
+            <div
+                className="mb-4 flex flex-wrap items-center gap-2"
+                data-testid="recipe-notes-filter"
+            >
+                <button
+                    type="button"
+                    onClick={() => setNotesFilter("all")}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                        notesFilter === "all"
+                            ? "border-red-200 bg-red-50 text-red-800"
+                            : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
+                    }`}
+                    data-testid="recipe-notes-filter-all"
                 >
-                    {privateNotes.map((note: any) => {
-                        const isEditing = editingId === note.id;
+                    All notes
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setNotesFilter("mine")}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                        notesFilter === "mine"
+                            ? "border-red-200 bg-red-50 text-red-800"
+                            : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
+                    }`}
+                    data-testid="recipe-notes-filter-mine"
+                >
+                    Mine
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setNotesFilter("shared")}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                        notesFilter === "shared"
+                            ? "border-red-200 bg-red-50 text-red-800"
+                            : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
+                    }`}
+                    data-testid="recipe-notes-filter-shared"
+                >
+                    Shared
+                </button>
+            </div>
+
+            {filteredNotes.length ? (
+                <div className="mb-5 space-y-3" data-testid="recipe-notes-list">
+                    {filteredNotes.map((note: any) => {
+                        const isOwnNote = note._source === "mine";
+                        const isEditing = isOwnNote && editingId === note.id;
+                        const noteCardClass = isOwnNote
+                            ? "rounded-xl border border-red-200 bg-red-50/35 p-4"
+                            : "rounded-xl border border-zinc-200 bg-zinc-50/80 p-4";
+                        const ownerBadgeClass = isOwnNote
+                            ? "inline-flex rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-800"
+                            : "inline-flex rounded-full border border-zinc-300 bg-white px-2.5 py-0.5 text-xs font-medium text-zinc-700";
 
                         return (
                             <div
                                 key={note.id}
-                                className="rounded-xl border border-red-100 bg-red-50/30 p-4"
-                                data-testid={`recipe-private-note-${note.id}`}
+                                className={noteCardClass}
+                                data-testid={
+                                    isOwnNote
+                                        ? `recipe-private-note-${note.id}`
+                                        : `recipe-shared-note-${note.id}`
+                                }
                             >
                                 <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                                    <p
-                                        className="text-xs font-medium text-zinc-600"
-                                        data-testid={`recipe-private-note-timestamp-${note.id}`}
-                                    >
-                                        {formatTimestamp(note.created_at)}
-                                    </p>
-
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setEditingId(note.id);
-                                                setEditingNote(note.note || "");
-                                            }}
-                                            className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-medium text-red-700 transition-colors hover:bg-red-100"
-                                            data-testid={`recipe-private-note-edit-${note.id}`}
-                                        >
-                                            Edit
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                handleDelete(note.id)
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <span
+                                            className={ownerBadgeClass}
+                                            data-testid={
+                                                isOwnNote
+                                                    ? `recipe-private-note-owner-${note.id}`
+                                                    : `recipe-shared-note-owner-${note.id}`
                                             }
-                                            className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-medium text-red-700 transition-colors hover:bg-red-100"
-                                            data-testid={`recipe-private-note-delete-${note.id}`}
                                         >
-                                            Delete
-                                        </button>
+                                            {isOwnNote
+                                                ? "You"
+                                                : `Shared by ${note._ownerLabel}`}
+                                        </span>
+                                        <p
+                                            className="text-xs font-medium text-zinc-600"
+                                            data-testid={
+                                                isOwnNote
+                                                    ? `recipe-private-note-timestamp-${note.id}`
+                                                    : `recipe-shared-note-timestamp-${note.id}`
+                                            }
+                                        >
+                                            {formatTimestamp(note.created_at)}
+                                        </p>
                                     </div>
+
+                                    {isOwnNote && (
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setEditingId(note.id);
+                                                    setEditingNote(
+                                                        note.note || "",
+                                                    );
+                                                }}
+                                                className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-medium text-red-700 transition-colors hover:bg-red-100"
+                                                data-testid={`recipe-private-note-edit-${note.id}`}
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    handleDelete(note.id)
+                                                }
+                                                className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-medium text-red-700 transition-colors hover:bg-red-100"
+                                                data-testid={`recipe-private-note-delete-${note.id}`}
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {isEditing ? (
@@ -448,7 +565,11 @@ function PrivateNotesSection({ auth, recipe, privateNotes }: any) {
                                 ) : (
                                     <div
                                         className="markdown-note text-sm leading-6 text-zinc-800"
-                                        data-testid={`recipe-private-note-body-${note.id}`}
+                                        data-testid={
+                                            isOwnNote
+                                                ? `recipe-private-note-body-${note.id}`
+                                                : `recipe-shared-note-body-${note.id}`
+                                        }
                                     >
                                         <ReactMarkdown
                                             remarkPlugins={[remarkGfm]}
@@ -464,9 +585,9 @@ function PrivateNotesSection({ auth, recipe, privateNotes }: any) {
             ) : (
                 <div
                     className="mb-5 text-sm text-zinc-500"
-                    data-testid="recipe-private-notes-empty"
+                    data-testid="recipe-notes-empty"
                 >
-                    No private notes yet.
+                    No notes in this view.
                 </div>
             )}
 
@@ -503,7 +624,44 @@ function formatTimestamp(value: string): string {
         return value;
     }
 
-    return date.toLocaleString();
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const minuteMs = 60 * 1000;
+    const hourMs = 60 * minuteMs;
+    const dayMs = 24 * hourMs;
+    const relativeCutoffDays = 7;
+
+    if (diffMs >= 0 && diffMs < relativeCutoffDays * dayMs) {
+        if (diffMs < minuteMs) {
+            return "just now";
+        }
+
+        if (diffMs < hourMs) {
+            const minutes = Math.floor(diffMs / minuteMs);
+            return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+        }
+
+        if (diffMs < dayMs) {
+            const hours = Math.floor(diffMs / hourMs);
+            return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+        }
+
+        const days = Math.floor(diffMs / dayMs);
+        return `${days} day${days === 1 ? "" : "s"} ago`;
+    }
+
+    const datePart = new Intl.DateTimeFormat("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+    }).format(date);
+
+    const timePart = new Intl.DateTimeFormat("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+    }).format(date);
+
+    return `${datePart} at ${timePart}`;
 }
 
 function normalizeCategory(value: any): string {

@@ -123,9 +123,23 @@ Route::get('/recipe/{recipe:slug}', function (Request $request, NewRecipe $recip
         ->orderBy('created_at')
         ->get();
 
+    $isSharingNotes = $request->user()->noteSharesGiven()->exists();
+
+    $sharedOwnerIds = $request->user()
+        ->noteSharesReceived()
+        ->pluck('owner_user_id');
+
+    $sharedNotes = $recipe->privateNotes()
+        ->with('user:id,name,email')
+        ->whereIn('user_id', $sharedOwnerIds)
+        ->orderBy('created_at')
+        ->get();
+
     return Inertia::render('Recipe', [
         'recipe' => $recipe,
         'privateNotes' => $privateNotes,
+        'sharedNotes' => $sharedNotes,
+        'isSharingNotes' => $isSharingNotes,
     ]);
 })->middleware(['auth', 'verified'])->name('recipe');
 
@@ -145,6 +159,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::post('/profile/note-shares', [ProfileController::class, 'storeNoteShare'])->name('profile.note-shares.store');
+    Route::delete('/profile/note-shares/{viewer}', [ProfileController::class, 'destroyNoteShare'])->name('profile.note-shares.destroy');
     Route::get('/recipe', [RecipeController::class, 'create'])->name('recipe.create');
     Route::post('/recipe', [RecipeController::class, 'store'])->name('recipe.store');
     Route::post('/recipes/{recipe}/favorite', function (Request $request, NewRecipe $recipe) {
