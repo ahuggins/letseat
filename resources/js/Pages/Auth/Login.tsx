@@ -53,6 +53,7 @@ export default function Login({
     );
     const recipesRoute = routeOr("recipes", "/recipes");
     const forgotPasswordRoute = routeOr("password.request", "/forgot-password");
+    const registerRoute = routeOr("register", "/register");
 
     const loginAs = (email: string) => {
         router.post(loginLinkRoute, {
@@ -160,6 +161,15 @@ export default function Login({
                             Remember me
                         </span>
                     </label>
+                </div>
+                <div className="mt-4 text-sm text-zinc-600">
+                    New here?{" "}
+                    <Link
+                        href={registerRoute}
+                        className="font-medium text-red-700 underline decoration-red-300 underline-offset-4 transition-colors hover:text-red-900"
+                    >
+                        Create an account
+                    </Link>
                 </div>
                 <div className="flex items-center justify-end mt-4">
                     {canResetPassword && (
