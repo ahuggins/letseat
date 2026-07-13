@@ -34,14 +34,12 @@ export default function Recipes({
                     <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-t-lg">
                         <div className="flex p-4 gap-4 flex-col">
                             {results.length > 0 ? (
-                                results.map(
-                                    (recipe: any, index: any) => (
-                                        <SearchPreview
-                                            recipe={recipe}
-                                            key={index}
-                                        />
-                                    ),
-                                )
+                                results.map((recipe: any, index: any) => (
+                                    <SearchPreview
+                                        recipe={recipe}
+                                        key={index}
+                                    />
+                                ))
                             ) : (
                                 <div className="text-white">
                                     No Recipes matched the searched Term
@@ -108,7 +106,10 @@ function SearchPreview({ recipe }: any) {
 }
 
 function getImageUrl(jsonRecipe: any): string | null {
-    if (!jsonRecipe || !Object.prototype.hasOwnProperty.call(jsonRecipe, "image")) {
+    if (
+        !jsonRecipe ||
+        !Object.prototype.hasOwnProperty.call(jsonRecipe, "image")
+    ) {
         return null;
     }
 

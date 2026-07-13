@@ -45,7 +45,10 @@ export default function Recipe({ auth, recipe }: any) {
 
                                     <ExternalLinkRow
                                         name={recipe.name}
-                                        siteLink={recipe.site_link || recipe.site_domain}
+                                        siteLink={
+                                            recipe.site_link ||
+                                            recipe.site_domain
+                                        }
                                         originalLink={recipe.url}
                                     />
                                 </div>
