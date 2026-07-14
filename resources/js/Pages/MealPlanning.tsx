@@ -14,10 +14,19 @@ export default function MealPlanning({
     auth,
     recipes,
     filters,
+    savedPlans,
 }: {
     auth: any;
     recipes: PlannerRecipe[];
     filters: { q?: string };
+    savedPlans: Array<{
+        id: number;
+        name?: string | null;
+        week_start?: string | null;
+        week_end?: string | null;
+        recipes_count: number;
+        created_at: string;
+    }>;
 }) {
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [searchQuery, setSearchQuery] = useState(filters?.q ?? "");
@@ -68,8 +77,8 @@ export default function MealPlanning({
             return;
         }
 
-        router.get(route("meal-planning.list"), {
-            ids: selectedIds.join(","),
+        router.post(route("meal-planning.assemble"), {
+            selected_ids: selectedIds,
         });
     }
 
@@ -216,6 +225,65 @@ export default function MealPlanning({
                         </div>
                     )}
 
+                    <section
+                        className="mt-8 rounded-2xl border border-red-200 bg-white p-5 shadow-sm"
+                        data-testid="meal-planning-saved-plans"
+                    >
+                        <h2 className="font-serif text-2xl font-semibold text-zinc-900">
+                            Saved Lists
+                        </h2>
+                        <p className="mt-1 text-sm text-zinc-600">
+                            Reopen a saved checklist while shopping.
+                        </p>
+
+                        {savedPlans.length ? (
+                            <ul
+                                className="mt-4 space-y-2"
+                                data-testid="meal-planning-saved-plans-list"
+                            >
+                                {savedPlans.map((plan) => (
+                                    <li
+                                        key={plan.id}
+                                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50/40 px-3 py-2"
+                                        data-testid={`meal-planning-saved-plan-${plan.id}`}
+                                    >
+                                        <div>
+                                            <p className="text-sm font-medium text-zinc-900">
+                                                {plan.name || "Saved meal list"}
+                                            </p>
+                                            <p className="text-xs text-zinc-600">
+                                                {formatWeekRange(
+                                                    plan.week_start,
+                                                    plan.week_end,
+                                                )} • {plan.recipes_count} meal
+                                                {plan.recipes_count === 1
+                                                    ? ""
+                                                    : "s"}
+                                            </p>
+                                        </div>
+                                        <Link
+                                            href={route(
+                                                "meal-planning.list",
+                                                plan.id,
+                                            )}
+                                            className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-medium text-red-700 transition-colors hover:bg-red-100"
+                                            data-testid={`meal-planning-open-saved-plan-${plan.id}`}
+                                        >
+                                            Open list
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p
+                                className="mt-4 text-sm text-zinc-500"
+                                data-testid="meal-planning-saved-plans-empty"
+                            >
+                                No saved lists yet.
+                            </p>
+                        )}
+                    </section>
+
                     <div
                         className="mt-8"
                         data-testid="meal-planning-step-footer"
@@ -231,4 +299,29 @@ export default function MealPlanning({
             </div>
         </AuthenticatedLayout>
     );
+}
+
+function formatWeekRange(start?: string | null, end?: string | null): string {
+    if (!start || !end) {
+        return "Week range unavailable";
+    }
+
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+        return "Week range unavailable";
+    }
+
+    const startLabel = new Intl.DateTimeFormat("en-US", {
+        month: "long",
+        day: "numeric",
+    }).format(startDate);
+    const endLabel = new Intl.DateTimeFormat("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+    }).format(endDate);
+
+    return `${startLabel} to ${endLabel}`;
 }

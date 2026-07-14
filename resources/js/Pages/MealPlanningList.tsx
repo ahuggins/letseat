@@ -17,10 +17,18 @@ type ChecklistItem = {
 
 export default function MealPlanningList({
     auth,
+    mealPlan,
     planRecipes,
     checklistItems,
 }: {
     auth: any;
+    mealPlan: {
+        id: number;
+        name?: string | null;
+        week_start?: string | null;
+        week_end?: string | null;
+        created_at: string;
+    };
     planRecipes: PlannedRecipe[];
     checklistItems: ChecklistItem[];
 }) {
@@ -88,6 +96,15 @@ export default function MealPlanningList({
                         className="mb-6 rounded-2xl border border-red-200 bg-white p-5 shadow-sm"
                         data-testid="meal-planning-selected-recipes"
                     >
+                        <p
+                            className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-red-700/80"
+                            data-testid="meal-planning-list-name"
+                        >
+                            {mealPlan.name || "Saved meal list"}
+                        </p>
+                        <p className="mb-3 text-sm text-zinc-600" data-testid="meal-planning-list-range">
+                            {formatWeekRange(mealPlan.week_start, mealPlan.week_end)}
+                        </p>
                         <h2 className="font-serif text-2xl font-semibold text-zinc-900">
                             Meals in this list
                         </h2>
@@ -204,4 +221,29 @@ export default function MealPlanningList({
             </div>
         </AuthenticatedLayout>
     );
+}
+
+function formatWeekRange(start?: string | null, end?: string | null): string {
+    if (!start || !end) {
+        return "Week range unavailable";
+    }
+
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+        return "Week range unavailable";
+    }
+
+    const startLabel = new Intl.DateTimeFormat("en-US", {
+        month: "long",
+        day: "numeric",
+    }).format(startDate);
+    const endLabel = new Intl.DateTimeFormat("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+    }).format(endDate);
+
+    return `${startLabel} to ${endLabel}`;
 }

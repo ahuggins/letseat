@@ -4,7 +4,9 @@ use App\Http\Controllers\CommentController;
 use App\Http\Controllers\PrivateRecipeNoteController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RecipeController;
+use App\Models\MealPlan;
 use App\Models\NewRecipe;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -241,26 +243,54 @@ Route::get('/meal-planning', function (Request $request) use ($mealPlanningRecip
         })->values();
     }
 
+    $savedPlans = MealPlan::query()
+        ->where('user_id', $request->user()->id)
+        ->withCount('recipes')
+        ->latest()
+        ->limit(12)
+        ->get()
+        ->map(function (MealPlan $plan) {
+            return [
+                'id' => $plan->id,
+                'name' => $plan->name,
+                'week_start' => $plan->week_start?->toDateString(),
+                'week_end' => $plan->week_end?->toDateString(),
+                'recipes_count' => $plan->recipes_count,
+                'created_at' => $plan->created_at,
+            ];
+        })
+        ->values();
+
     return Inertia::render('MealPlanning', [
         'recipes' => $recipes,
         'filters' => [
             'q' => $query,
         ],
+        'savedPlans' => $savedPlans,
     ]);
 })->middleware(['auth', 'verified'])->name('meal-planning');
 
-Route::get('/meal-planning/list', function (Request $request) use ($mealPlanningRecipes) {
-    $idString = (string) $request->query('ids', '');
-    $selectedIds = collect(explode(',', $idString))
-        ->map(fn ($id) => (int) trim($id))
-        ->filter(fn ($id) => $id > 0)
+Route::get('/meal-planning/list/{mealPlan}', function (Request $request, MealPlan $mealPlan) {
+    if ((int) $mealPlan->user_id !== (int) $request->user()->id) {
+        abort(403);
+    }
+
+    $planRecipes = $mealPlan->recipes()
+        ->orderBy('id')
+        ->get()
+        ->map(function ($recipe) {
+            return [
+                'id' => $recipe->recipe_id,
+                'name' => $recipe->recipe_name,
+                'category' => $recipe->recipe_category,
+                'cook_time' => $recipe->cook_time,
+                'ingredients' => $recipe->ingredients ?? [],
+            ];
+        })
         ->values();
 
-    $recipesById = $mealPlanningRecipes()->keyBy('id');
-
-    $planRecipes = $selectedIds
-        ->map(fn ($id) => $recipesById->get($id))
-        ->filter()
+    $selectedIds = $planRecipes
+        ->pluck('id')
         ->values();
 
     $checklistItems = $planRecipes
@@ -282,13 +312,20 @@ Route::get('/meal-planning/list', function (Request $request) use ($mealPlanning
         });
 
     return Inertia::render('MealPlanningList', [
+        'mealPlan' => [
+            'id' => $mealPlan->id,
+            'name' => $mealPlan->name,
+            'week_start' => $mealPlan->week_start?->toDateString(),
+            'week_end' => $mealPlan->week_end?->toDateString(),
+            'created_at' => $mealPlan->created_at,
+        ],
         'selectedIds' => $selectedIds,
         'planRecipes' => $planRecipes,
         'checklistItems' => $checklistItems,
     ]);
 })->middleware(['auth', 'verified'])->name('meal-planning.list');
 
-Route::middleware('auth')->group(function () {
+Route::middleware('auth')->group(function () use ($mealPlanningRecipes) {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -321,6 +358,56 @@ Route::middleware('auth')->group(function () {
     })->name('recipes.unmade');
 
     Route::post('/comment/{model}/{id}', [CommentController::class, 'store'])->name('comment.store');
+    Route::post('/meal-planning/assemble', function (Request $request) use ($mealPlanningRecipes) {
+        $validated = $request->validate([
+            'selected_ids' => ['required', 'array', 'min:1'],
+            'selected_ids.*' => ['integer'],
+        ]);
+
+        $selectedIds = collect($validated['selected_ids'])
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values();
+
+        if ($selectedIds->isEmpty()) {
+            return redirect()->route('meal-planning');
+        }
+
+        $recipesById = $mealPlanningRecipes()->keyBy('id');
+        $selectedRecipes = $selectedIds
+            ->map(fn ($id) => $recipesById->get($id))
+            ->filter()
+            ->values();
+
+        if ($selectedRecipes->isEmpty()) {
+            return redirect()->route('meal-planning');
+        }
+
+        $weekStart = Carbon::now()->startOfDay();
+        $weekEnd = Carbon::now()->addDays(7)->startOfDay();
+
+        $mealPlan = MealPlan::create([
+            'user_id' => $request->user()->id,
+            'name' => sprintf('Week of %s', $weekStart->format('F j, Y')),
+            'week_start' => $weekStart,
+            'week_end' => $weekEnd,
+        ]);
+
+        $mealPlan->recipes()->createMany(
+            $selectedRecipes->map(function (array $recipe) {
+                return [
+                    'recipe_id' => $recipe['id'],
+                    'recipe_name' => $recipe['name'],
+                    'recipe_category' => $recipe['category'],
+                    'cook_time' => $recipe['cook_time'],
+                    'ingredients' => $recipe['ingredients'],
+                ];
+            })->all()
+        );
+
+        return redirect()->route('meal-planning.list', $mealPlan->id);
+    })->name('meal-planning.assemble');
     Route::post('/recipes/{recipe}/private-notes', [PrivateRecipeNoteController::class, 'store'])
         ->name('recipes.private-notes.store');
     Route::patch('/recipes/{recipe}/private-notes/{note}', [PrivateRecipeNoteController::class, 'update'])
