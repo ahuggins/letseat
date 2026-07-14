@@ -68,8 +68,8 @@ export default function Authenticated({
                                         className={
                                             "inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-none " +
                                             (isMealPlanningSection
-                                                ? "border-indigo-400 text-gray-900 "
-                                                : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700")
+                                                ? "border-red-500 text-red-700 "
+                                                : "border-transparent text-zinc-600 hover:border-red-300 hover:text-red-700")
                                         }
                                     >
                                         Meal Planning
@@ -115,8 +115,8 @@ export default function Authenticated({
                                         className={
                                             "inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-none " +
                                             (isFavoritesSection
-                                                ? "border-indigo-400 text-gray-900 "
-                                                : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700")
+                                                ? "border-red-500 text-red-700 "
+                                                : "border-transparent text-zinc-600 hover:border-red-300 hover:text-red-700")
                                         }
                                     >
                                         My Favorites
@@ -275,10 +275,7 @@ export default function Authenticated({
                             </ResponsiveNavLink>
                             <ResponsiveNavLink
                                 href={route("meal-planning")}
-                                active={
-                                    route().current("meal-planning") ||
-                                    route().current("meal-planning.list")
-                                }
+                                active={isMealPlanningSection}
                             >
                                 Meal Planning
                             </ResponsiveNavLink>
