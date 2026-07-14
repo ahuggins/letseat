@@ -181,7 +181,7 @@ Route::get('/meal-planning', function (Request $request) {
                 'id' => $recipe->id,
                 'name' => $recipe->name,
                 'category' => $recipe->category ?: 'Uncategorized',
-                'cook_time' => null,
+                'cook_time' => $recipe->planningCookTimeLabel(),
                 'ingredients' => $ingredients,
             ];
         })
@@ -354,7 +354,7 @@ Route::middleware('auth')->group(function () {
                     'recipe_id' => $recipe->id,
                     'recipe_name' => $recipe->name,
                     'recipe_category' => $recipe->category,
-                    'cook_time' => null,
+                    'cook_time' => $recipe->planningCookTimeLabel(),
                     'ingredients' => is_array($recipe->ingredients)
                         ? $recipe->ingredients
                         : [],

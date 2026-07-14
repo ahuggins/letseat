@@ -67,6 +67,113 @@ class NewRecipe extends Model
         ]);
     }
 
+    public function planningCookTimeLabel(): ?string
+    {
+        $content = is_array($this->content) ? $this->content : [];
+        $recipeNode = $this->extractRecipeNode($content);
+
+        if (! is_array($recipeNode)) {
+            return null;
+        }
+
+        $timeKeys = ['totalTime', 'cookTime', 'prepTime'];
+
+        foreach ($timeKeys as $key) {
+            $label = $this->normalizeTimeValue($recipeNode[$key] ?? null);
+
+            if ($label !== null) {
+                return $label;
+            }
+        }
+
+        return null;
+    }
+
+    private function extractRecipeNode(array $content): ?array
+    {
+        if (array_key_exists('@graph', $content) && is_array($content['@graph'])) {
+            foreach ($content['@graph'] as $node) {
+                if (! is_array($node)) {
+                    continue;
+                }
+
+                $nodeType = $node['@type'] ?? null;
+                $isRecipe = $nodeType === 'Recipe' || (is_array($nodeType) && in_array('Recipe', $nodeType, true));
+
+                if ($isRecipe) {
+                    return $node;
+                }
+            }
+        }
+
+        $nodeType = $content['@type'] ?? null;
+        $isRecipe = $nodeType === 'Recipe' || (is_array($nodeType) && in_array('Recipe', $nodeType, true));
+
+        return $isRecipe ? $content : null;
+    }
+
+    private function normalizeTimeValue(mixed $value): ?string
+    {
+        if (is_array($value)) {
+            if (array_is_list($value)) {
+                foreach ($value as $item) {
+                    $label = $this->normalizeTimeValue($item);
+
+                    if ($label !== null) {
+                        return $label;
+                    }
+                }
+
+                return null;
+            }
+
+            return $this->normalizeTimeValue($value['@value'] ?? $value['value'] ?? null);
+        }
+
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        if ($trimmed === '') {
+            return null;
+        }
+
+        if (! preg_match('/^P(?!$)/', $trimmed)) {
+            return $trimmed;
+        }
+
+        try {
+            $interval = new \DateInterval($trimmed);
+        } catch (\Exception) {
+            return $trimmed;
+        }
+
+        $totalMinutes = ($interval->y * 525600)
+            + ($interval->m * 43200)
+            + ($interval->d * 1440)
+            + ($interval->h * 60)
+            + $interval->i;
+
+        if ($totalMinutes <= 0) {
+            return $interval->s > 0 ? '1 min' : null;
+        }
+
+        $hours = intdiv($totalMinutes, 60);
+        $minutes = $totalMinutes % 60;
+
+        if ($hours > 0 && $minutes > 0) {
+            return sprintf('%d hr %d min', $hours, $minutes);
+        }
+
+        if ($hours > 0) {
+            return sprintf('%d hr', $hours);
+        }
+
+        return sprintf('%d min', $minutes);
+    }
+
     protected function slug(): Attribute
     {
         return Attribute::make(
