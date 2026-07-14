@@ -166,6 +166,7 @@ Route::get('/meal-planning', function (Request $request) {
                 $queryBuilder
                     ->where('name', 'like', "%{$query}%")
                     ->orWhere('category', 'like', "%{$query}%")
+                    ->orWhere('description', 'like', "%{$query}%")
                     ->orWhere('ingredients', 'like', "%{$query}%");
             });
         })

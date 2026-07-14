@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link, router } from "@inertiajs/react";
 
@@ -32,6 +32,9 @@ export default function MealPlanning({
 }) {
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [searchQuery, setSearchQuery] = useState(filters?.q ?? "");
+    const lastAppliedQueryRef = useRef((filters?.q ?? "").trim());
+    const searchInputRef = useRef<HTMLInputElement | null>(null);
+    const latestSavedPlan = savedPlans[0] ?? null;
 
     const selectedCount = selectedIds.length;
     const weekLabel = useMemo(() => {
@@ -52,17 +55,48 @@ export default function MealPlanning({
         return `${startLabel} to ${endLabel}`;
     }, []);
 
-    function applyFilter() {
+    function requestFilter(nextQuery: string) {
+        if (nextQuery === lastAppliedQueryRef.current) {
+            return;
+        }
+
+        const shouldRestoreFocus =
+            document.activeElement === searchInputRef.current;
+
+        lastAppliedQueryRef.current = nextQuery;
+
         router.get(
             route("meal-planning"),
-            { q: searchQuery.trim() },
+            { q: nextQuery },
             {
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
+                onFinish: () => {
+                    if (!shouldRestoreFocus || !searchInputRef.current) {
+                        return;
+                    }
+
+                    const input = searchInputRef.current;
+                    input.focus({ preventScroll: true });
+                    const cursorPos = input.value.length;
+                    input.setSelectionRange(cursorPos, cursorPos);
+                },
             },
         );
     }
+
+    function applyFilter() {
+        requestFilter(searchQuery.trim());
+    }
+
+    useEffect(() => {
+        const timeoutId = window.setTimeout(() => {
+            requestFilter(searchQuery.trim());
+        }, 350);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [searchQuery]);
 
     function toggleRecipe(recipeId: number) {
         setSelectedIds((prev) => {
@@ -96,7 +130,7 @@ export default function MealPlanning({
             <Head title="Meal Planning" />
 
             <div
-                className="bg-white py-6 sm:py-10"
+                className="bg-white py-6 pb-28 sm:py-10 sm:pb-32"
                 data-testid="meal-planning-page"
             >
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -117,7 +151,7 @@ export default function MealPlanning({
                     </section>
 
                     <section
-                        className="mb-6 flex flex-col gap-3 rounded-2xl border border-red-200 bg-white p-4 shadow-sm md:flex-row md:items-end md:justify-between"
+                        className="sticky top-16 z-30 mb-6 flex flex-col gap-3 rounded-2xl border border-red-200 bg-white/95 p-4 shadow-sm backdrop-blur md:flex-row md:items-end md:justify-between"
                         data-testid="meal-planning-controls"
                     >
                         <div className="w-full max-w-xl">
@@ -129,13 +163,19 @@ export default function MealPlanning({
                             </label>
                             <div className="flex gap-2">
                                 <input
+                                    ref={searchInputRef}
                                     id="meal-planning-search"
                                     type="text"
                                     value={searchQuery}
                                     onChange={(e) =>
                                         setSearchQuery(e.target.value)
                                     }
-                                    placeholder="Filter by recipe or ingredient"
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                            applyFilter();
+                                        }
+                                    }}
+                                    placeholder="Filter by name, description, or ingredient"
                                     className="h-11 w-full rounded-xl border border-red-200 bg-white px-3 text-sm text-zinc-900 placeholder:text-zinc-500 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-200"
                                     data-testid="meal-planning-filter-input"
                                 />
@@ -241,66 +281,6 @@ export default function MealPlanning({
                         </div>
                     )}
 
-                    <section
-                        className="mt-8 rounded-2xl border border-red-200 bg-white p-5 shadow-sm"
-                        data-testid="meal-planning-saved-plans"
-                    >
-                        <h2 className="font-serif text-2xl font-semibold text-zinc-900">
-                            Saved Lists
-                        </h2>
-                        <p className="mt-1 text-sm text-zinc-600">
-                            Reopen a saved checklist while shopping.
-                        </p>
-
-                        {savedPlans.length ? (
-                            <ul
-                                className="mt-4 space-y-2"
-                                data-testid="meal-planning-saved-plans-list"
-                            >
-                                {savedPlans.map((plan) => (
-                                    <li
-                                        key={plan.id}
-                                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50/40 px-3 py-2"
-                                        data-testid={`meal-planning-saved-plan-${plan.id}`}
-                                    >
-                                        <div>
-                                            <p className="text-sm font-medium text-zinc-900">
-                                                {plan.name || "Saved meal list"}
-                                            </p>
-                                            <p className="text-xs text-zinc-600">
-                                                {formatWeekRange(
-                                                    plan.week_start,
-                                                    plan.week_end,
-                                                )}{" "}
-                                                • {plan.recipes_count} meal
-                                                {plan.recipes_count === 1
-                                                    ? ""
-                                                    : "s"}
-                                            </p>
-                                        </div>
-                                        <Link
-                                            href={route(
-                                                "meal-planning.list",
-                                                plan.id,
-                                            )}
-                                            className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-medium text-red-700 transition-colors hover:bg-red-100"
-                                            data-testid={`meal-planning-open-saved-plan-${plan.id}`}
-                                        >
-                                            Open list
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p
-                                className="mt-4 text-sm text-zinc-500"
-                                data-testid="meal-planning-saved-plans-empty"
-                            >
-                                No saved lists yet.
-                            </p>
-                        )}
-                    </section>
-
                     <div
                         className="mt-8"
                         data-testid="meal-planning-step-footer"
@@ -311,6 +291,59 @@ export default function MealPlanning({
                         >
                             Back to recipes
                         </Link>
+                    </div>
+                </div>
+
+                <div
+                    className="fixed inset-x-0 bottom-0 z-40 border-t border-red-200/80 bg-white/95 backdrop-blur"
+                    data-testid="meal-planning-sticky-saved-plan"
+                >
+                    <div className="mx-auto flex h-[88px] max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+                        {latestSavedPlan ? (
+                            <>
+                                <div className="min-w-0">
+                                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-red-700/80">
+                                        Latest saved list
+                                    </p>
+                                    <p className="truncate text-sm font-medium text-zinc-900">
+                                        {latestSavedPlan.name ||
+                                            "Saved meal list"}
+                                    </p>
+                                    <p className="truncate text-xs text-zinc-600">
+                                        {formatWeekRange(
+                                            latestSavedPlan.week_start,
+                                            latestSavedPlan.week_end,
+                                        )}{" "}
+                                        • {latestSavedPlan.recipes_count} meal
+                                        {latestSavedPlan.recipes_count === 1
+                                            ? ""
+                                            : "s"}
+                                    </p>
+                                </div>
+
+                                <Link
+                                    href={route(
+                                        "meal-planning.list",
+                                        latestSavedPlan.id,
+                                    )}
+                                    className="shrink-0 rounded-full bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600"
+                                    data-testid={`meal-planning-open-saved-plan-${latestSavedPlan.id}`}
+                                >
+                                    Open current list
+                                </Link>
+                            </>
+                        ) : (
+                            <div className="flex w-full items-center justify-between gap-3">
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-red-700/80">
+                                        Saved list
+                                    </p>
+                                    <p className="text-sm text-zinc-600">
+                                        No saved lists yet.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
