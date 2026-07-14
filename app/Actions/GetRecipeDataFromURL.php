@@ -24,23 +24,62 @@ class GetRecipeDataFromURL
 
         $scraper->go($this->url);
 
-        // dd($scraper->go($this->url));
+        $what = $scraper->filter("//*[@type='application/ld+json']")->reduce(function (Crawler $node): bool {
+            $raw = trim($node->text(''));
 
-        $what = $scraper->filter("//*[@type='application/ld+json']")->reduce(function (Crawler $node, $i): bool {
-
-            $content = json_decode($node->text());
-
-            $content = property_exists($content, '@graph') ? $content->{'@graph'} : $content;
-
-            if (is_array($content)) {
-                return count(array_filter($content, fn ($node) => $node->{'@type'} === 'Recipe')) > 0;
-            } else {
-                return $content->{'@type'} === 'Recipe';
+            if ($raw === '') {
+                return false;
             }
 
+            $content = json_decode($raw);
+
+            if (! $content) {
+                return false;
+            }
+
+            $content = is_object($content) && property_exists($content, '@graph')
+                ? $content->{'@graph'}
+                : $content;
+
+            if (is_array($content)) {
+                foreach ($content as $entry) {
+                    if ($this->isRecipeNode($entry)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            return $this->isRecipeNode($content);
         });
 
-        // dd($what->text(), 'the recipe');
+        if ($what->count() === 0) {
+            $pageTitle = '';
+            $pageBodyText = '';
+
+            try {
+                $pageTitle = trim($scraper->filter('title')->text(''));
+            } catch (\Throwable) {
+                // Ignore title extraction errors.
+            }
+
+            try {
+                $pageBodyText = strtolower($scraper->filter('body')->text(''));
+            } catch (\Throwable) {
+                // Ignore body extraction errors.
+            }
+
+            if (
+                str_contains(strtolower($pageTitle), 'just a moment')
+                || str_contains($pageBodyText, 'enable javascript and cookies to continue')
+                || str_contains($pageBodyText, 'cloudflare')
+            ) {
+                throw new \RuntimeException('This site blocks automated recipe scraping (Cloudflare challenge).');
+            }
+
+            throw new \RuntimeException('Could not find recipe schema on this page. The site may block automated access.');
+        }
 
         $json = $what->text();
 
@@ -83,5 +122,28 @@ class GetRecipeDataFromURL
             'content' => json_encode($data),
             'nutrition' => array_key_exists('nutrition', $data) ? json_encode($data['nutrition']) : json_encode(''),
         ];
+    }
+
+    private function isRecipeNode(mixed $node): bool
+    {
+        if (! is_object($node)) {
+            return false;
+        }
+
+        if (! property_exists($node, '@type')) {
+            return false;
+        }
+
+        $type = $node->{'@type'};
+
+        if (is_string($type)) {
+            return $type === 'Recipe';
+        }
+
+        if (is_array($type)) {
+            return in_array('Recipe', $type, true);
+        }
+
+        return false;
     }
 }

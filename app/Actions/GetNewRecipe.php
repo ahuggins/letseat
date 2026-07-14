@@ -10,6 +10,34 @@ class GetNewRecipe
 {
     use QueueableAction;
 
+    public function preview(string $url): array
+    {
+        $data = (new GetRecipeDataFromURL($url))->execute();
+
+        $content = json_decode((string) $data['content'], true);
+        $content = is_array($content) ? $content : [];
+        $ingredients = $this->decodeToArray($data['ingredients'] ?? null);
+        [$siteDomain, $siteName] = $this->getWebsite($content, (string) ($data['url'] ?? $url));
+        $image = $this->getThumbnail($content);
+        $category = $this->getCategory($content);
+        $cuisine = $this->getCuisine($content);
+
+        $previewRecipe = new NewRecipe([
+            'content' => $content,
+        ]);
+
+        return [
+            'name' => html_entity_decode((string) ($data['name'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+            'site_domain' => $siteDomain,
+            'site_name' => $siteName,
+            'image' => $image,
+            'category' => $category,
+            'cuisine' => $cuisine,
+            'ingredient_count' => count($ingredients),
+            'cook_time' => $previewRecipe->planningCookTimeLabel(),
+        ];
+    }
+
     public function execute(string $url, int|string $userId, bool $refresh = false): NewRecipe
     {
         $data = (new GetRecipeDataFromURL($url))->execute();

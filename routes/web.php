@@ -155,8 +155,37 @@ Route::get('/search', function (Request $request) {
     return Inertia::render('Search', ['recipes' => ['data' => $recipes]]);
 })->middleware(['auth', 'verified'])->name('search');
 
-Route::get('/add-recipe', function () {
-    return Inertia::render('AddRecipe');
+Route::get('/add-recipe', function (Request $request) {
+    $importedRecipeId = (int) $request->query('imported_recipe_id', 0);
+
+    $importedRecipe = null;
+
+    if ($importedRecipeId > 0) {
+        $recipe = NewRecipe::query()->find($importedRecipeId);
+
+        if ($recipe) {
+            $ingredientCount = is_array($recipe->ingredients)
+                ? count($recipe->ingredients)
+                : 0;
+
+            $importedRecipe = [
+                'id' => $recipe->id,
+                'slug' => $recipe->slug,
+                'name' => html_entity_decode($recipe->name, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+                'site_name' => $recipe->site_name,
+                'site_domain' => $recipe->site_domain,
+                'image' => $recipe->image,
+                'category' => $recipe->category,
+                'cuisine' => $recipe->cuisine,
+                'ingredient_count' => $ingredientCount,
+                'cook_time' => $recipe->planningCookTimeLabel(),
+            ];
+        }
+    }
+
+    return Inertia::render('AddRecipe', [
+        'importedRecipe' => $importedRecipe,
+    ]);
 })->middleware(['auth', 'verified'])->name('add-recipe');
 
 Route::get('/meal-planning', function (Request $request) {
@@ -739,6 +768,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/profile/note-shares', [ProfileController::class, 'storeNoteShare'])->name('profile.note-shares.store');
     Route::delete('/profile/note-shares/{viewer}', [ProfileController::class, 'destroyNoteShare'])->name('profile.note-shares.destroy');
     Route::get('/recipe', [RecipeController::class, 'create'])->name('recipe.create');
+    Route::post('/recipe/preview', [RecipeController::class, 'preview'])->name('recipe.preview');
     Route::post('/recipe', [RecipeController::class, 'store'])->name('recipe.store');
     Route::post('/recipes/{recipe}/favorite', function (Request $request, NewRecipe $recipe) {
         $request->user()->favoriteRecipes()->syncWithoutDetaching([$recipe->id]);
