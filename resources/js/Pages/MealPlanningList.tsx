@@ -35,8 +35,12 @@ export default function MealPlanningList({
     const [checkedItems, setCheckedItems] = useState<number[]>([]);
     const [pantryItems, setPantryItems] = useState<number[]>([]);
 
-    const visibleItems = useMemo(
+    const shoppingItems = useMemo(
         () => checklistItems.filter((item) => !pantryItems.includes(item.id)),
+        [checklistItems, pantryItems],
+    );
+    const pantryListItems = useMemo(
+        () => checklistItems.filter((item) => pantryItems.includes(item.id)),
         [checklistItems, pantryItems],
     );
 
@@ -58,6 +62,10 @@ export default function MealPlanningList({
         });
 
         setCheckedItems((prev) => prev.filter((id) => id !== itemId));
+    }
+
+    function removeFromPantry(itemId: number) {
+        setPantryItems((prev) => prev.filter((id) => id !== itemId));
     }
 
     return (
@@ -102,8 +110,14 @@ export default function MealPlanningList({
                         >
                             {mealPlan.name || "Saved meal list"}
                         </p>
-                        <p className="mb-3 text-sm text-zinc-600" data-testid="meal-planning-list-range">
-                            {formatWeekRange(mealPlan.week_start, mealPlan.week_end)}
+                        <p
+                            className="mb-3 text-sm text-zinc-600"
+                            data-testid="meal-planning-list-range"
+                        >
+                            {formatWeekRange(
+                                mealPlan.week_start,
+                                mealPlan.week_end,
+                            )}
                         </p>
                         <h2 className="font-serif text-2xl font-semibold text-zinc-900">
                             Meals in this list
@@ -139,17 +153,17 @@ export default function MealPlanningList({
                                 className="text-sm text-zinc-600"
                                 data-testid="meal-planning-checklist-count"
                             >
-                                {visibleItems.length} item
-                                {visibleItems.length === 1 ? "" : "s"} remaining
+                                {shoppingItems.length} item
+                                {shoppingItems.length === 1 ? "" : "s"} to shop
                             </p>
                         </div>
 
-                        {visibleItems.length ? (
+                        {shoppingItems.length ? (
                             <ul
                                 className="space-y-2"
                                 data-testid="meal-planning-checklist-items"
                             >
-                                {visibleItems.map((item) => {
+                                {shoppingItems.map((item) => {
                                     const isChecked = checkedItems.includes(
                                         item.id,
                                     );
@@ -201,8 +215,52 @@ export default function MealPlanningList({
                                 className="text-sm text-zinc-600"
                                 data-testid="meal-planning-checklist-empty"
                             >
-                                Everything is checked off or marked in pantry.
+                                No shopping items left.
                             </p>
+                        )}
+
+                        {pantryListItems.length > 0 && (
+                            <div
+                                className="mt-5 border-t border-red-100 pt-4"
+                                data-testid="meal-planning-pantry-items"
+                            >
+                                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-zinc-600">
+                                    In Pantry (Excluded from shopping)
+                                </p>
+
+                                <ul
+                                    className="space-y-2"
+                                    data-testid="meal-planning-pantry-items-list"
+                                >
+                                    {pantryListItems.map((item) => (
+                                        <li
+                                            key={item.id}
+                                            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-2"
+                                            data-testid={`meal-planning-pantry-item-${item.id}`}
+                                        >
+                                            <div className="min-w-0 flex-1">
+                                                <span className="block text-sm text-zinc-500 line-through">
+                                                    {item.ingredient}
+                                                </span>
+                                                <span className="block text-xs text-zinc-500">
+                                                    {item.recipe_name}
+                                                </span>
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    removeFromPantry(item.id)
+                                                }
+                                                className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-100"
+                                                data-testid={`meal-planning-pantry-item-restore-${item.id}`}
+                                            >
+                                                Add back to list
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
                         )}
                     </section>
 

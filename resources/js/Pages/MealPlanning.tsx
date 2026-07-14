@@ -255,7 +255,8 @@ export default function MealPlanning({
                                                 {formatWeekRange(
                                                     plan.week_start,
                                                     plan.week_end,
-                                                )} • {plan.recipes_count} meal
+                                                )}{" "}
+                                                • {plan.recipes_count} meal
                                                 {plan.recipes_count === 1
                                                     ? ""
                                                     : "s"}
