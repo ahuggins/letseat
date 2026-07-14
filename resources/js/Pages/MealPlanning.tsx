@@ -7,6 +7,8 @@ type PlannerRecipe = {
     name: string;
     category: string;
     cook_time?: string | null;
+    image?: string | null;
+    description?: string | null;
     ingredients: string[];
 };
 
@@ -172,30 +174,43 @@ export default function MealPlanning({
                                 return (
                                     <article
                                         key={recipe.id}
-                                        className="rounded-2xl border border-red-200 bg-white p-5 shadow-sm"
+                                        className="flex h-full flex-col rounded-2xl border border-red-200 bg-white p-5 shadow-sm"
                                         data-testid={`meal-planning-recipe-card-${recipe.id}`}
                                     >
-                                        <div className="mb-3 flex items-center justify-between gap-3">
-                                            <span className="inline-flex rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-800">
-                                                {recipe.category}
-                                            </span>
-                                            <span className="text-xs text-zinc-500">
-                                                {recipe.cook_time ||
-                                                    "Time not set"}
-                                            </span>
-                                        </div>
+                                        <div className="flex flex-1 items-start gap-4">
+                                            <div className="min-w-0 flex-1">
+                                                <div className="mb-2 flex items-center justify-between gap-3">
+                                                    <span className="inline-flex rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-800">
+                                                        {recipe.category}
+                                                    </span>
+                                                    <span className="text-xs text-zinc-500">
+                                                        {recipe.cook_time ||
+                                                            "Time not set"}
+                                                    </span>
+                                                </div>
 
-                                        <h3 className="font-serif text-2xl font-semibold text-zinc-900">
-                                            {recipe.name}
-                                        </h3>
-                                        <p className="mt-2 text-sm text-zinc-600">
-                                            {recipe.ingredients
-                                                .slice(0, 3)
-                                                .join(", ")}
-                                            {recipe.ingredients.length > 3
-                                                ? ", ..."
-                                                : ""}
-                                        </p>
+                                                <h3 className="font-serif text-xl font-semibold leading-tight text-zinc-900">
+                                                    {recipe.name}
+                                                </h3>
+                                                <p className="mt-2 text-sm text-zinc-600">
+                                                    {recipe.description?.trim() ||
+                                                        "No description yet."}
+                                                </p>
+                                            </div>
+
+                                            {recipe.image ? (
+                                                <img
+                                                    src={recipe.image}
+                                                    alt={recipe.name}
+                                                    className="h-20 w-24 shrink-0 rounded-xl border border-red-100 object-cover"
+                                                    loading="lazy"
+                                                />
+                                            ) : (
+                                                <div className="flex h-20 w-24 shrink-0 items-center justify-center rounded-xl border border-red-100 bg-gradient-to-br from-red-100 to-orange-50 text-[11px] font-medium uppercase tracking-[0.08em] text-red-700/80">
+                                                    Recipe
+                                                </div>
+                                            )}
+                                        </div>
 
                                         <button
                                             type="button"

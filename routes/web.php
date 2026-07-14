@@ -179,9 +179,11 @@ Route::get('/meal-planning', function (Request $request) {
 
             return [
                 'id' => $recipe->id,
-                'name' => $recipe->name,
+                'name' => html_entity_decode($recipe->name, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
                 'category' => $recipe->category ?: 'Uncategorized',
                 'cook_time' => $recipe->planningCookTimeLabel(),
+                'image' => $recipe->image,
+                'description' => $recipe->description,
                 'ingredients' => $ingredients,
             ];
         })
