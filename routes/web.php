@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\ExtensionTokenController;
 use App\Http\Controllers\PrivateRecipeNoteController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RecipeController;
@@ -767,6 +768,15 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::post('/profile/note-shares', [ProfileController::class, 'storeNoteShare'])->name('profile.note-shares.store');
     Route::delete('/profile/note-shares/{viewer}', [ProfileController::class, 'destroyNoteShare'])->name('profile.note-shares.destroy');
+    Route::get('/profile/extension-tokens', [ExtensionTokenController::class, 'index'])
+        ->middleware('throttle:20,1')
+        ->name('profile.extension-tokens.index');
+    Route::post('/profile/extension-tokens', [ExtensionTokenController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('profile.extension-tokens.store');
+    Route::delete('/profile/extension-tokens/{tokenId}', [ExtensionTokenController::class, 'destroy'])
+        ->middleware('throttle:20,1')
+        ->name('profile.extension-tokens.destroy');
     Route::get('/recipe', [RecipeController::class, 'create'])->name('recipe.create');
     Route::post('/recipe/preview', [RecipeController::class, 'preview'])->name('recipe.preview');
     Route::post('/recipe', [RecipeController::class, 'store'])->name('recipe.store');

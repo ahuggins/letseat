@@ -1,5 +1,6 @@
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import DeleteUserForm from "./Partials/DeleteUserForm";
+import ExtensionTokensForm from "./Partials/ExtensionTokensForm";
 import NotesSharingForm from "./Partials/NotesSharingForm";
 import UpdatePasswordForm from "./Partials/UpdatePasswordForm";
 import UpdateProfileInformationForm from "./Partials/UpdateProfileInformationForm";
@@ -11,6 +12,7 @@ export default function Edit({
     mustVerifyEmail,
     status,
     noteShares,
+    extensionTokens,
 }: PageProps<{
     mustVerifyEmail: boolean;
     status?: string;
@@ -19,6 +21,13 @@ export default function Edit({
         viewer_id: number;
         viewer_name: string;
         viewer_email: string;
+        created_at: string;
+    }>;
+    extensionTokens: Array<{
+        id: number;
+        name: string;
+        abilities: string[];
+        last_used_at: string | null;
         created_at: string;
     }>;
 }>) {
@@ -51,6 +60,13 @@ export default function Edit({
                         <NotesSharingForm
                             className="max-w-xl"
                             noteShares={noteShares}
+                        />
+                    </div>
+
+                    <div className="rounded-2xl border border-red-200 bg-white p-4 shadow-sm sm:rounded-2xl sm:p-8">
+                        <ExtensionTokensForm
+                            className="max-w-2xl"
+                            initialTokens={extensionTokens}
                         />
                     </div>
 

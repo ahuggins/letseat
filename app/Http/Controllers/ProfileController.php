@@ -33,10 +33,25 @@ class ProfileController extends Controller
                 'created_at' => $share->created_at,
             ]);
 
+        $extensionTokens = $request->user()
+            ->tokens()
+            ->where('name', 'like', 'chrome-extension:%')
+            ->orderByDesc('id')
+            ->get(['id', 'name', 'abilities', 'last_used_at', 'created_at'])
+            ->map(fn ($token) => [
+                'id' => $token->id,
+                'name' => $token->name,
+                'abilities' => $token->abilities,
+                'last_used_at' => $token->last_used_at,
+                'created_at' => $token->created_at,
+            ])
+            ->values();
+
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
             'noteShares' => $noteShares,
+            'extensionTokens' => $extensionTokens,
         ]);
     }
 

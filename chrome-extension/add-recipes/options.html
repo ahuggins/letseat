@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>LetsEat Add Recipes Settings</title>
+        <link rel="stylesheet" href="styles.css" />
+    </head>
+    <body>
+        <main class="container options">
+            <header class="header">
+                <p class="eyebrow">LetsEat Extension</p>
+                <h1>Settings</h1>
+                <p class="subtle">
+                    Store your personal access token. Production URL is
+                    preconfigured.
+                </p>
+            </header>
+
+            <form id="settings-form" class="card">
+                <details>
+                    <summary>Advanced: Override API URL</summary>
+                    <label for="baseUrl">LetsEat Base URL</label>
+                    <input
+                        id="baseUrl"
+                        type="url"
+                        placeholder="https://letseat.app"
+                    />
+                </details>
+
+                <label for="token">Personal Access Token</label>
+                <input
+                    id="token"
+                    type="password"
+                    placeholder="paste token"
+                    required
+                />
+
+                <div class="actions">
+                    <button class="button secondary" id="test" type="button">
+                        Test Connection
+                    </button>
+                    <button class="button" type="submit">Save</button>
+                    <button
+                        class="button secondary"
+                        id="disconnect"
+                        type="button"
+                    >
+                        Disconnect
+                    </button>
+                </div>
+
+                <p id="status" class="status"></p>
+            </form>
+        </main>
+
+        <script src="options.js"></script>
+    </body>
+</html>

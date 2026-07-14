@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>LetsEat Add Recipes</title>
+        <link rel="stylesheet" href="styles.css" />
+    </head>
+    <body>
+        <main class="container">
+            <header class="header">
+                <p class="eyebrow">LetsEat</p>
+                <h1>Add Recipe</h1>
+                <p class="subtle">
+                    Save the current page to your recipe library.
+                </p>
+            </header>
+
+            <section class="card" id="config-warning" hidden>
+                <p class="warn">Set up your LetsEat token first.</p>
+                <a
+                    class="button secondary"
+                    href="options.html"
+                    target="_blank"
+                    rel="noreferrer"
+                    >Open Extension Settings</a
+                >
+            </section>
+
+            <section class="card">
+                <label for="url">Current URL</label>
+                <input id="url" type="url" readonly />
+            </section>
+
+            <section class="card" id="preview-card">
+                <div id="preview-status" class="status">
+                    Checking parseability...
+                </div>
+                <div id="preview-content" hidden>
+                    <img id="preview-image" alt="Recipe preview image" hidden />
+                    <h2 id="preview-name"></h2>
+                    <p id="preview-site" class="muted"></p>
+                    <p id="preview-meta" class="muted"></p>
+                </div>
+            </section>
+
+            <section class="actions">
+                <button id="refresh" class="button secondary" type="button">
+                    Re-check
+                </button>
+                <button id="add" class="button" type="button" disabled>
+                    Add Recipe
+                </button>
+            </section>
+
+            <section class="card" id="result-card" hidden>
+                <p id="result-text"></p>
+                <a
+                    id="result-link"
+                    class="button secondary"
+                    href="#"
+                    target="_blank"
+                    rel="noreferrer"
+                    hidden
+                    >Open in LetsEat</a
+                >
+            </section>
+
+            <footer class="footer">
+                <a href="options.html" target="_blank" rel="noreferrer"
+                    >Settings</a
+                >
+            </footer>
+        </main>
+
+        <script src="popup.js"></script>
+    </body>
+</html>

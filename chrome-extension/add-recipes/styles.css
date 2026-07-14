@@ -1,0 +1,176 @@
+:root {
+  --bg: #fff7f6;
+  --ink: #18181b;
+  --muted: #52525b;
+  --brand: #ef4444;
+  --brand-strong: #dc2626;
+  --card: #ffffff;
+  --line: #fecaca;
+  --error: #b91c1c;
+  --ok: #166534;
+  --loading: #9a3412;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  background: radial-gradient(circle at top right, #ffe4e6, var(--bg));
+  color: var(--ink);
+}
+
+.container {
+  width: 360px;
+  margin: 0 auto;
+  padding: 14px;
+}
+
+.container.options {
+  width: min(620px, 100%);
+  padding: 24px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.subtle {
+  margin: 6px 0 12px;
+  color: var(--muted);
+}
+
+.card {
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+input {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #fff5f5;
+  border-radius: 10px;
+  min-height: 40px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+}
+
+input:focus {
+  outline: none;
+  border-color: #f87171;
+  box-shadow: 0 0 0 2px #fecaca;
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.button {
+  appearance: none;
+  border: 1px solid transparent;
+  background: var(--brand);
+  color: #fff;
+  border-radius: 999px;
+  min-height: 36px;
+  padding: 0 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.button:hover {
+  background: var(--brand-strong);
+}
+
+.button.secondary {
+  background: #ffffff;
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.status {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.status.error {
+  color: var(--error);
+}
+
+.status.success {
+  color: var(--ok);
+}
+
+.status.loading {
+  color: var(--loading);
+}
+
+.warn {
+  margin: 0 0 8px;
+  color: var(--error);
+}
+
+.muted,
+.hint,
+.footer {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+#preview-image {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 8px;
+}
+
+#preview-name {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+#preview-site,
+#preview-meta {
+  margin: 0 0 4px;
+}
+
+.footer {
+  text-align: right;
+}
+
+.footer a {
+  color: var(--brand-strong);
+}
