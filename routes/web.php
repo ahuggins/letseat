@@ -318,6 +318,9 @@ Route::get('/meal-planning/list/{mealPlan}', function (Request $request, MealPla
             'week_start' => $mealPlan->week_start?->toDateString(),
             'week_end' => $mealPlan->week_end?->toDateString(),
             'created_at' => $mealPlan->created_at,
+            'checked_item_ids' => $mealPlan->checked_item_ids ?? [],
+            'pantry_item_ids' => $mealPlan->pantry_item_ids ?? [],
+            'checklist_view_mode' => $mealPlan->checklist_view_mode ?? 'combined',
         ],
         'selectedIds' => $selectedIds,
         'planRecipes' => $planRecipes,
@@ -392,6 +395,9 @@ Route::middleware('auth')->group(function () use ($mealPlanningRecipes) {
             'name' => sprintf('Week of %s', $weekStart->format('F j, Y')),
             'week_start' => $weekStart,
             'week_end' => $weekEnd,
+            'checked_item_ids' => [],
+            'pantry_item_ids' => [],
+            'checklist_view_mode' => 'combined',
         ]);
 
         $mealPlan->recipes()->createMany(
@@ -408,6 +414,37 @@ Route::middleware('auth')->group(function () use ($mealPlanningRecipes) {
 
         return redirect()->route('meal-planning.list', $mealPlan->id);
     })->name('meal-planning.assemble');
+    Route::patch('/meal-planning/list/{mealPlan}/state', function (Request $request, MealPlan $mealPlan) {
+        if ((int) $mealPlan->user_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'checked_item_ids' => ['present', 'array'],
+            'checked_item_ids.*' => ['integer'],
+            'pantry_item_ids' => ['present', 'array'],
+            'pantry_item_ids.*' => ['integer'],
+            'checklist_view_mode' => ['required', 'in:combined,by-meal'],
+        ]);
+
+        $mealPlan->update([
+            'checked_item_ids' => collect($validated['checked_item_ids'])
+                ->map(fn ($id) => (int) $id)
+                ->filter(fn ($id) => $id > 0)
+                ->unique()
+                ->values()
+                ->all(),
+            'pantry_item_ids' => collect($validated['pantry_item_ids'])
+                ->map(fn ($id) => (int) $id)
+                ->filter(fn ($id) => $id > 0)
+                ->unique()
+                ->values()
+                ->all(),
+            'checklist_view_mode' => $validated['checklist_view_mode'],
+        ]);
+
+        return back(303);
+    })->name('meal-planning.list.state');
     Route::post('/recipes/{recipe}/private-notes', [PrivateRecipeNoteController::class, 'store'])
         ->name('recipes.private-notes.store');
     Route::patch('/recipes/{recipe}/private-notes/{note}', [PrivateRecipeNoteController::class, 'update'])

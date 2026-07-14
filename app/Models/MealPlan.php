@@ -11,6 +11,8 @@ class MealPlan extends Model
     protected $casts = [
         'week_start' => 'date',
         'week_end' => 'date',
+        'checked_item_ids' => 'array',
+        'pantry_item_ids' => 'array',
     ];
 
     public function user()

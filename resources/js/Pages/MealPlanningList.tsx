@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import { Head, Link } from "@inertiajs/react";
+import { Head, Link, router } from "@inertiajs/react";
 
 type PlannedRecipe = {
     id: number;
@@ -28,14 +28,21 @@ export default function MealPlanningList({
         week_start?: string | null;
         week_end?: string | null;
         created_at: string;
+        checked_item_ids?: number[];
+        pantry_item_ids?: number[];
+        checklist_view_mode?: "combined" | "by-meal";
     };
     planRecipes: PlannedRecipe[];
     checklistItems: ChecklistItem[];
 }) {
-    const [checkedItems, setCheckedItems] = useState<number[]>([]);
-    const [pantryItems, setPantryItems] = useState<number[]>([]);
+    const [checkedItems, setCheckedItems] = useState<number[]>(
+        mealPlan.checked_item_ids ?? [],
+    );
+    const [pantryItems, setPantryItems] = useState<number[]>(
+        mealPlan.pantry_item_ids ?? [],
+    );
     const [viewMode, setViewMode] = useState<"combined" | "by-meal">(
-        "combined",
+        mealPlan.checklist_view_mode ?? "combined",
     );
 
     const shoppingItems = useMemo(
@@ -70,11 +77,15 @@ export default function MealPlanningList({
     }, [planRecipes, shoppingItems]);
 
     function toggleChecked(itemId: number) {
-        setCheckedItems((prev) =>
-            prev.includes(itemId)
+        setCheckedItems((prev) => {
+            const nextChecked = prev.includes(itemId)
                 ? prev.filter((id) => id !== itemId)
-                : [...prev, itemId],
-        );
+                : [...prev, itemId];
+
+            persistChecklistState(nextChecked, pantryItems, viewMode);
+
+            return nextChecked;
+        });
     }
 
     function markInPantry(itemId: number) {
@@ -83,14 +94,49 @@ export default function MealPlanningList({
                 return prev;
             }
 
-            return [...prev, itemId];
-        });
+            const nextPantry = [...prev, itemId];
+            const nextChecked = checkedItems.filter((id) => id !== itemId);
 
-        setCheckedItems((prev) => prev.filter((id) => id !== itemId));
+            setCheckedItems(nextChecked);
+            persistChecklistState(nextChecked, nextPantry, viewMode);
+
+            return nextPantry;
+        });
     }
 
     function removeFromPantry(itemId: number) {
-        setPantryItems((prev) => prev.filter((id) => id !== itemId));
+        setPantryItems((prev) => {
+            const nextPantry = prev.filter((id) => id !== itemId);
+
+            persistChecklistState(checkedItems, nextPantry, viewMode);
+
+            return nextPantry;
+        });
+    }
+
+    function setAndPersistViewMode(nextViewMode: "combined" | "by-meal") {
+        setViewMode(nextViewMode);
+        persistChecklistState(checkedItems, pantryItems, nextViewMode);
+    }
+
+    function persistChecklistState(
+        nextChecked: number[],
+        nextPantry: number[],
+        nextViewMode: "combined" | "by-meal",
+    ) {
+        router.patch(
+            route("meal-planning.list.state", mealPlan.id),
+            {
+                checked_item_ids: nextChecked,
+                pantry_item_ids: nextPantry,
+                checklist_view_mode: nextViewMode,
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
     }
 
     return (
@@ -181,7 +227,9 @@ export default function MealPlanningList({
                                 >
                                     <button
                                         type="button"
-                                        onClick={() => setViewMode("combined")}
+                                        onClick={() =>
+                                            setAndPersistViewMode("combined")
+                                        }
                                         className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                                             viewMode === "combined"
                                                 ? "bg-red-50 text-red-800"
@@ -193,7 +241,9 @@ export default function MealPlanningList({
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => setViewMode("by-meal")}
+                                        onClick={() =>
+                                            setAndPersistViewMode("by-meal")
+                                        }
                                         className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                                             viewMode === "by-meal"
                                                 ? "bg-red-50 text-red-800"
