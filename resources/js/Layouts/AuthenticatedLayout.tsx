@@ -57,6 +57,15 @@ export default function Authenticated({
                                 >
                                     Add Recipe
                                 </NavLink>
+                                <NavLink
+                                    href={route("meal-planning")}
+                                    active={
+                                        route().current("meal-planning") ||
+                                        route().current("meal-planning.list")
+                                    }
+                                >
+                                    Meal Planning
+                                </NavLink>
                                 <div className="group relative">
                                     <Link
                                         href={route("favorites")}
@@ -220,6 +229,15 @@ export default function Authenticated({
                                 active={route().current("add-recipe")}
                             >
                                 Add Recipe
+                            </ResponsiveNavLink>
+                            <ResponsiveNavLink
+                                href={route("meal-planning")}
+                                active={
+                                    route().current("meal-planning") ||
+                                    route().current("meal-planning.list")
+                                }
+                            >
+                                Meal Planning
                             </ResponsiveNavLink>
                             <ResponsiveNavLink
                                 href={route("favorites")}

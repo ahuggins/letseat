@@ -13,6 +13,75 @@ Route::get('/', function () {
     return redirect()->route('recipes');
 });
 
+$mealPlanningRecipes = function () {
+    return collect([
+        [
+            'id' => 101,
+            'name' => 'Tomato Basil Pasta',
+            'category' => 'Dinner',
+            'cook_time' => '30 min',
+            'ingredients' => [
+                '1 lb spaghetti',
+                '2 tbsp olive oil',
+                '3 cloves garlic',
+                '1 can crushed tomatoes',
+                '1/2 cup basil leaves',
+            ],
+        ],
+        [
+            'id' => 102,
+            'name' => 'Lemon Garlic Chicken Bowls',
+            'category' => 'Lunch',
+            'cook_time' => '40 min',
+            'ingredients' => [
+                '1.5 lb chicken thighs',
+                '2 tbsp olive oil',
+                '2 lemons',
+                '3 cloves garlic',
+                '2 cups cooked rice',
+            ],
+        ],
+        [
+            'id' => 103,
+            'name' => 'Veggie Stir Fry',
+            'category' => 'Dinner',
+            'cook_time' => '25 min',
+            'ingredients' => [
+                '1 red bell pepper',
+                '1 broccoli crown',
+                '2 tbsp soy sauce',
+                '1 tbsp sesame oil',
+                '2 cloves garlic',
+            ],
+        ],
+        [
+            'id' => 104,
+            'name' => 'Greek Yogurt Parfaits',
+            'category' => 'Breakfast',
+            'cook_time' => '10 min',
+            'ingredients' => [
+                '2 cups Greek yogurt',
+                '1 cup granola',
+                '1 cup mixed berries',
+                '2 tbsp honey',
+            ],
+        ],
+        [
+            'id' => 105,
+            'name' => 'Sheet Pan Salmon & Veg',
+            'category' => 'Dinner',
+            'cook_time' => '35 min',
+            'ingredients' => [
+                '4 salmon fillets',
+                '1 lb baby potatoes',
+                '1 bunch asparagus',
+                '2 tbsp olive oil',
+                '1 lemon',
+            ],
+        ],
+    ]);
+};
+
 $renderRecipeIndex = function (Request $request, bool $favoritesOnly = false, bool $madesOnly = false) {
     $user = $request->query('user');
     $query = trim((string) $request->query('q', ''));
@@ -154,6 +223,70 @@ Route::get('/search', function (Request $request) {
 Route::get('/add-recipe', function () {
     return Inertia::render('AddRecipe');
 })->middleware(['auth', 'verified'])->name('add-recipe');
+
+Route::get('/meal-planning', function (Request $request) use ($mealPlanningRecipes) {
+    $query = trim((string) $request->query('q', ''));
+
+    $recipes = $mealPlanningRecipes();
+
+    if ($query !== '') {
+        $recipes = $recipes->filter(function (array $recipe) use ($query) {
+            $haystack = strtolower(implode(' ', [
+                $recipe['name'],
+                $recipe['category'],
+                implode(' ', $recipe['ingredients']),
+            ]));
+
+            return str_contains($haystack, strtolower($query));
+        })->values();
+    }
+
+    return Inertia::render('MealPlanning', [
+        'recipes' => $recipes,
+        'filters' => [
+            'q' => $query,
+        ],
+    ]);
+})->middleware(['auth', 'verified'])->name('meal-planning');
+
+Route::get('/meal-planning/list', function (Request $request) use ($mealPlanningRecipes) {
+    $idString = (string) $request->query('ids', '');
+    $selectedIds = collect(explode(',', $idString))
+        ->map(fn ($id) => (int) trim($id))
+        ->filter(fn ($id) => $id > 0)
+        ->values();
+
+    $recipesById = $mealPlanningRecipes()->keyBy('id');
+
+    $planRecipes = $selectedIds
+        ->map(fn ($id) => $recipesById->get($id))
+        ->filter()
+        ->values();
+
+    $checklistItems = $planRecipes
+        ->flatMap(function (array $recipe) {
+            return collect($recipe['ingredients'])->map(function (string $ingredient) use ($recipe) {
+                return [
+                    'ingredient' => $ingredient,
+                    'recipe_id' => $recipe['id'],
+                    'recipe_name' => $recipe['name'],
+                ];
+            });
+        })
+        ->values()
+        ->map(function (array $item, int $index) {
+            return [
+                'id' => $index + 1,
+                ...$item,
+            ];
+        });
+
+    return Inertia::render('MealPlanningList', [
+        'selectedIds' => $selectedIds,
+        'planRecipes' => $planRecipes,
+        'checklistItems' => $checklistItems,
+    ]);
+})->middleware(['auth', 'verified'])->name('meal-planning.list');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
