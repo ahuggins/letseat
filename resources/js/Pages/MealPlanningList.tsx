@@ -34,6 +34,9 @@ export default function MealPlanningList({
 }) {
     const [checkedItems, setCheckedItems] = useState<number[]>([]);
     const [pantryItems, setPantryItems] = useState<number[]>([]);
+    const [viewMode, setViewMode] = useState<"combined" | "by-meal">(
+        "combined",
+    );
 
     const shoppingItems = useMemo(
         () => checklistItems.filter((item) => !pantryItems.includes(item.id)),
@@ -43,6 +46,28 @@ export default function MealPlanningList({
         () => checklistItems.filter((item) => pantryItems.includes(item.id)),
         [checklistItems, pantryItems],
     );
+    const groupedShoppingItems = useMemo(() => {
+        const groups = planRecipes.map((recipe) => ({
+            recipe_id: recipe.id,
+            recipe_name: recipe.name,
+            items: shoppingItems.filter((item) => item.recipe_id === recipe.id),
+        }));
+
+        const knownRecipeIds = new Set(planRecipes.map((recipe) => recipe.id));
+        const ungroupedItems = shoppingItems.filter(
+            (item) => !knownRecipeIds.has(item.recipe_id),
+        );
+
+        if (ungroupedItems.length) {
+            groups.push({
+                recipe_id: -1,
+                recipe_name: "Other",
+                items: ungroupedItems,
+            });
+        }
+
+        return groups.filter((group) => group.items.length > 0);
+    }, [planRecipes, shoppingItems]);
 
     function toggleChecked(itemId: number) {
         setCheckedItems((prev) =>
@@ -146,9 +171,40 @@ export default function MealPlanningList({
                         data-testid="meal-planning-checklist"
                     >
                         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                            <h2 className="font-serif text-2xl font-semibold text-zinc-900">
-                                Ingredients to shop
-                            </h2>
+                            <div className="flex flex-wrap items-center gap-3">
+                                <h2 className="font-serif text-2xl font-semibold text-zinc-900">
+                                    Ingredients to shop
+                                </h2>
+                                <div
+                                    className="inline-flex rounded-full border border-zinc-200 bg-white p-1"
+                                    data-testid="meal-planning-view-mode-toggle"
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={() => setViewMode("combined")}
+                                        className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                                            viewMode === "combined"
+                                                ? "bg-red-50 text-red-800"
+                                                : "text-zinc-600 hover:bg-zinc-50"
+                                        }`}
+                                        data-testid="meal-planning-view-mode-combined"
+                                    >
+                                        Combined
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setViewMode("by-meal")}
+                                        className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                                            viewMode === "by-meal"
+                                                ? "bg-red-50 text-red-800"
+                                                : "text-zinc-600 hover:bg-zinc-50"
+                                        }`}
+                                        data-testid="meal-planning-view-mode-by-meal"
+                                    >
+                                        By meal
+                                    </button>
+                                </div>
+                            </div>
                             <p
                                 className="text-sm text-zinc-600"
                                 data-testid="meal-planning-checklist-count"
@@ -159,57 +215,76 @@ export default function MealPlanningList({
                         </div>
 
                         {shoppingItems.length ? (
-                            <ul
-                                className="space-y-2"
-                                data-testid="meal-planning-checklist-items"
-                            >
-                                {shoppingItems.map((item) => {
-                                    const isChecked = checkedItems.includes(
-                                        item.id,
-                                    );
+                            viewMode === "combined" ? (
+                                <ul
+                                    className="space-y-2"
+                                    data-testid="meal-planning-checklist-items"
+                                >
+                                    {shoppingItems.map((item) => {
+                                        const isChecked = checkedItems.includes(
+                                            item.id,
+                                        );
 
-                                    return (
-                                        <li
-                                            key={item.id}
-                                            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50/40 px-3 py-2"
-                                            data-testid={`meal-planning-checklist-item-${item.id}`}
+                                        return (
+                                            <ChecklistRow
+                                                key={item.id}
+                                                item={item}
+                                                isChecked={isChecked}
+                                                onToggleChecked={toggleChecked}
+                                                onMarkInPantry={markInPantry}
+                                                showMealLabel={true}
+                                            />
+                                        );
+                                    })}
+                                </ul>
+                            ) : (
+                                <div
+                                    className="space-y-4"
+                                    data-testid="meal-planning-checklist-by-meal"
+                                >
+                                    {groupedShoppingItems.map((group) => (
+                                        <div
+                                            key={group.recipe_id}
+                                            className="rounded-xl border border-red-100 bg-red-50/25 p-3"
+                                            data-testid={`meal-planning-checklist-group-${group.recipe_id}`}
                                         >
-                                            <label className="flex min-w-0 flex-1 items-start gap-3">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={isChecked}
-                                                    onChange={() =>
-                                                        toggleChecked(item.id)
-                                                    }
-                                                    className="mt-1 rounded border-red-300 bg-red-50 text-red-600 focus:ring-red-500"
-                                                    data-testid={`meal-planning-checklist-item-check-${item.id}`}
-                                                />
-                                                <span className="min-w-0">
-                                                    <span
-                                                        className={`block text-sm ${isChecked ? "text-zinc-500 line-through" : "text-zinc-900"}`}
-                                                    >
-                                                        {item.ingredient}
-                                                    </span>
-                                                    <span className="block text-xs text-zinc-600">
-                                                        {item.recipe_name}
-                                                    </span>
-                                                </span>
-                                            </label>
-
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    markInPantry(item.id)
-                                                }
-                                                className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-medium text-red-700 transition-colors hover:bg-red-100"
-                                                data-testid={`meal-planning-checklist-item-pantry-${item.id}`}
+                                            <h3
+                                                className="mb-2 text-sm font-semibold text-zinc-800"
+                                                data-testid={`meal-planning-checklist-group-title-${group.recipe_id}`}
                                             >
-                                                In the pantry
-                                            </button>
-                                        </li>
-                                    );
-                                })}
-                            </ul>
+                                                {group.recipe_name}
+                                            </h3>
+                                            <ul className="space-y-2">
+                                                {group.items.map((item) => {
+                                                    const isChecked =
+                                                        checkedItems.includes(
+                                                            item.id,
+                                                        );
+
+                                                    return (
+                                                        <ChecklistRow
+                                                            key={item.id}
+                                                            item={item}
+                                                            isChecked={
+                                                                isChecked
+                                                            }
+                                                            onToggleChecked={
+                                                                toggleChecked
+                                                            }
+                                                            onMarkInPantry={
+                                                                markInPantry
+                                                            }
+                                                            showMealLabel={
+                                                                false
+                                                            }
+                                                        />
+                                                    );
+                                                })}
+                                            </ul>
+                                        </div>
+                                    ))}
+                                </div>
+                            )
                         ) : (
                             <p
                                 className="text-sm text-zinc-600"
@@ -278,6 +353,58 @@ export default function MealPlanningList({
                 </div>
             </div>
         </AuthenticatedLayout>
+    );
+}
+
+function ChecklistRow({
+    item,
+    isChecked,
+    onToggleChecked,
+    onMarkInPantry,
+    showMealLabel,
+}: {
+    item: ChecklistItem;
+    isChecked: boolean;
+    onToggleChecked: (itemId: number) => void;
+    onMarkInPantry: (itemId: number) => void;
+    showMealLabel: boolean;
+}) {
+    return (
+        <li
+            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50/40 px-3 py-2"
+            data-testid={`meal-planning-checklist-item-${item.id}`}
+        >
+            <label className="flex min-w-0 flex-1 items-start gap-3">
+                <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => onToggleChecked(item.id)}
+                    className="mt-1 rounded border-red-300 bg-red-50 text-red-600 focus:ring-red-500"
+                    data-testid={`meal-planning-checklist-item-check-${item.id}`}
+                />
+                <span className="min-w-0">
+                    <span
+                        className={`block text-sm ${isChecked ? "text-zinc-500 line-through" : "text-zinc-900"}`}
+                    >
+                        {item.ingredient}
+                    </span>
+                    {showMealLabel && (
+                        <span className="block text-xs text-zinc-600">
+                            {item.recipe_name}
+                        </span>
+                    )}
+                </span>
+            </label>
+
+            <button
+                type="button"
+                onClick={() => onMarkInPantry(item.id)}
+                className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-medium text-red-700 transition-colors hover:bg-red-100"
+                data-testid={`meal-planning-checklist-item-pantry-${item.id}`}
+            >
+                In the pantry
+            </button>
+        </li>
     );
 }
 
