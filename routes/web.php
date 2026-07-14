@@ -314,7 +314,7 @@ $renderPantryAssistantPage = function (Request $request, string $pantryInput = '
             ->get()
             ->map(function (NewRecipe $recipe) use ($normalizeTerm, $normalizedPantryItems, $currentMealPlanRecipeIds) {
                 $ingredients = collect(is_array($recipe->ingredients) ? $recipe->ingredients : [])
-                    ->map(fn ($item) => trim((string) $item))
+                    ->map(fn ($item) => trim(html_entity_decode((string) $item, ENT_QUOTES | ENT_HTML5, 'UTF-8')))
                     ->filter()
                     ->values();
 
