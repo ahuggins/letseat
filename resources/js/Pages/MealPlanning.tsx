@@ -6,7 +6,7 @@ type PlannerRecipe = {
     id: number;
     name: string;
     category: string;
-    cook_time: string;
+    cook_time?: string | null;
     ingredients: string[];
 };
 
@@ -180,7 +180,7 @@ export default function MealPlanning({
                                                 {recipe.category}
                                             </span>
                                             <span className="text-xs text-zinc-500">
-                                                {recipe.cook_time}
+                                                {recipe.cook_time || "Time not set"}
                                             </span>
                                         </div>
 

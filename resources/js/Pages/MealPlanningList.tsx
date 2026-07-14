@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link, router } from "@inertiajs/react";
 
@@ -44,6 +44,11 @@ export default function MealPlanningList({
     const [viewMode, setViewMode] = useState<"combined" | "by-meal">(
         mealPlan.checklist_view_mode ?? "combined",
     );
+    const [saveState, setSaveState] = useState<
+        "idle" | "saving" | "saved" | "error"
+    >("idle");
+    const saveTimeoutRef = useRef<number | null>(null);
+    const savedStateTimeoutRef = useRef<number | null>(null);
 
     const shoppingItems = useMemo(
         () => checklistItems.filter((item) => !pantryItems.includes(item.id)),
@@ -76,13 +81,25 @@ export default function MealPlanningList({
         return groups.filter((group) => group.items.length > 0);
     }, [planRecipes, shoppingItems]);
 
+    useEffect(() => {
+        return () => {
+            if (saveTimeoutRef.current) {
+                window.clearTimeout(saveTimeoutRef.current);
+            }
+
+            if (savedStateTimeoutRef.current) {
+                window.clearTimeout(savedStateTimeoutRef.current);
+            }
+        };
+    }, []);
+
     function toggleChecked(itemId: number) {
         setCheckedItems((prev) => {
             const nextChecked = prev.includes(itemId)
                 ? prev.filter((id) => id !== itemId)
                 : [...prev, itemId];
 
-            persistChecklistState(nextChecked, pantryItems, viewMode);
+            queueChecklistState(nextChecked, pantryItems, viewMode);
 
             return nextChecked;
         });
@@ -98,7 +115,7 @@ export default function MealPlanningList({
             const nextChecked = checkedItems.filter((id) => id !== itemId);
 
             setCheckedItems(nextChecked);
-            persistChecklistState(nextChecked, nextPantry, viewMode);
+            queueChecklistState(nextChecked, nextPantry, viewMode);
 
             return nextPantry;
         });
@@ -108,7 +125,7 @@ export default function MealPlanningList({
         setPantryItems((prev) => {
             const nextPantry = prev.filter((id) => id !== itemId);
 
-            persistChecklistState(checkedItems, nextPantry, viewMode);
+            queueChecklistState(checkedItems, nextPantry, viewMode);
 
             return nextPantry;
         });
@@ -116,27 +133,49 @@ export default function MealPlanningList({
 
     function setAndPersistViewMode(nextViewMode: "combined" | "by-meal") {
         setViewMode(nextViewMode);
-        persistChecklistState(checkedItems, pantryItems, nextViewMode);
+        queueChecklistState(checkedItems, pantryItems, nextViewMode);
     }
 
-    function persistChecklistState(
+    function queueChecklistState(
         nextChecked: number[],
         nextPantry: number[],
         nextViewMode: "combined" | "by-meal",
     ) {
-        router.patch(
-            route("meal-planning.list.state", mealPlan.id),
-            {
-                checked_item_ids: nextChecked,
-                pantry_item_ids: nextPantry,
-                checklist_view_mode: nextViewMode,
-            },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            },
-        );
+        if (saveTimeoutRef.current) {
+            window.clearTimeout(saveTimeoutRef.current);
+        }
+
+        setSaveState("saving");
+
+        saveTimeoutRef.current = window.setTimeout(() => {
+            router.patch(
+                route("meal-planning.list.state", mealPlan.id),
+                {
+                    checked_item_ids: nextChecked,
+                    pantry_item_ids: nextPantry,
+                    checklist_view_mode: nextViewMode,
+                },
+                {
+                    preserveState: true,
+                    preserveScroll: true,
+                    replace: true,
+                    onSuccess: () => {
+                        setSaveState("saved");
+
+                        if (savedStateTimeoutRef.current) {
+                            window.clearTimeout(savedStateTimeoutRef.current);
+                        }
+
+                        savedStateTimeoutRef.current = window.setTimeout(() => {
+                            setSaveState("idle");
+                        }, 1400);
+                    },
+                    onError: () => {
+                        setSaveState("error");
+                    },
+                },
+            );
+        }, 250);
     }
 
     return (
@@ -261,6 +300,14 @@ export default function MealPlanningList({
                             >
                                 {shoppingItems.length} item
                                 {shoppingItems.length === 1 ? "" : "s"} to shop
+                            </p>
+                            <p
+                                className="text-xs text-zinc-500"
+                                data-testid="meal-planning-checklist-save-state"
+                            >
+                                {saveState === "saving" && "Saving..."}
+                                {saveState === "saved" && "Saved"}
+                                {saveState === "error" && "Save failed"}
                             </p>
                         </div>
 

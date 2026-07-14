@@ -15,75 +15,6 @@ Route::get('/', function () {
     return redirect()->route('recipes');
 });
 
-$mealPlanningRecipes = function () {
-    return collect([
-        [
-            'id' => 101,
-            'name' => 'Tomato Basil Pasta',
-            'category' => 'Dinner',
-            'cook_time' => '30 min',
-            'ingredients' => [
-                '1 lb spaghetti',
-                '2 tbsp olive oil',
-                '3 cloves garlic',
-                '1 can crushed tomatoes',
-                '1/2 cup basil leaves',
-            ],
-        ],
-        [
-            'id' => 102,
-            'name' => 'Lemon Garlic Chicken Bowls',
-            'category' => 'Lunch',
-            'cook_time' => '40 min',
-            'ingredients' => [
-                '1.5 lb chicken thighs',
-                '2 tbsp olive oil',
-                '2 lemons',
-                '3 cloves garlic',
-                '2 cups cooked rice',
-            ],
-        ],
-        [
-            'id' => 103,
-            'name' => 'Veggie Stir Fry',
-            'category' => 'Dinner',
-            'cook_time' => '25 min',
-            'ingredients' => [
-                '1 red bell pepper',
-                '1 broccoli crown',
-                '2 tbsp soy sauce',
-                '1 tbsp sesame oil',
-                '2 cloves garlic',
-            ],
-        ],
-        [
-            'id' => 104,
-            'name' => 'Greek Yogurt Parfaits',
-            'category' => 'Breakfast',
-            'cook_time' => '10 min',
-            'ingredients' => [
-                '2 cups Greek yogurt',
-                '1 cup granola',
-                '1 cup mixed berries',
-                '2 tbsp honey',
-            ],
-        ],
-        [
-            'id' => 105,
-            'name' => 'Sheet Pan Salmon & Veg',
-            'category' => 'Dinner',
-            'cook_time' => '35 min',
-            'ingredients' => [
-                '4 salmon fillets',
-                '1 lb baby potatoes',
-                '1 bunch asparagus',
-                '2 tbsp olive oil',
-                '1 lemon',
-            ],
-        ],
-    ]);
-};
-
 $renderRecipeIndex = function (Request $request, bool $favoritesOnly = false, bool $madesOnly = false) {
     $user = $request->query('user');
     $query = trim((string) $request->query('q', ''));
@@ -226,22 +157,35 @@ Route::get('/add-recipe', function () {
     return Inertia::render('AddRecipe');
 })->middleware(['auth', 'verified'])->name('add-recipe');
 
-Route::get('/meal-planning', function (Request $request) use ($mealPlanningRecipes) {
+Route::get('/meal-planning', function (Request $request) {
     $query = trim((string) $request->query('q', ''));
 
-    $recipes = $mealPlanningRecipes();
+    $recipes = NewRecipe::query()
+        ->when($query !== '', function ($builder) use ($query) {
+            $builder->where(function ($queryBuilder) use ($query) {
+                $queryBuilder
+                    ->where('name', 'like', "%{$query}%")
+                    ->orWhere('category', 'like', "%{$query}%")
+                    ->orWhere('ingredients', 'like', "%{$query}%");
+            });
+        })
+        ->orderByDesc('created_at')
+        ->limit(60)
+        ->get()
+        ->map(function (NewRecipe $recipe) {
+            $ingredients = is_array($recipe->ingredients)
+                ? $recipe->ingredients
+                : [];
 
-    if ($query !== '') {
-        $recipes = $recipes->filter(function (array $recipe) use ($query) {
-            $haystack = strtolower(implode(' ', [
-                $recipe['name'],
-                $recipe['category'],
-                implode(' ', $recipe['ingredients']),
-            ]));
-
-            return str_contains($haystack, strtolower($query));
-        })->values();
-    }
+            return [
+                'id' => $recipe->id,
+                'name' => $recipe->name,
+                'category' => $recipe->category ?: 'Uncategorized',
+                'cook_time' => null,
+                'ingredients' => $ingredients,
+            ];
+        })
+        ->values();
 
     $savedPlans = MealPlan::query()
         ->where('user_id', $request->user()->id)
@@ -328,7 +272,7 @@ Route::get('/meal-planning/list/{mealPlan}', function (Request $request, MealPla
     ]);
 })->middleware(['auth', 'verified'])->name('meal-planning.list');
 
-Route::middleware('auth')->group(function () use ($mealPlanningRecipes) {
+Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -361,7 +305,7 @@ Route::middleware('auth')->group(function () use ($mealPlanningRecipes) {
     })->name('recipes.unmade');
 
     Route::post('/comment/{model}/{id}', [CommentController::class, 'store'])->name('comment.store');
-    Route::post('/meal-planning/assemble', function (Request $request) use ($mealPlanningRecipes) {
+    Route::post('/meal-planning/assemble', function (Request $request) {
         $validated = $request->validate([
             'selected_ids' => ['required', 'array', 'min:1'],
             'selected_ids.*' => ['integer'],
@@ -377,7 +321,11 @@ Route::middleware('auth')->group(function () use ($mealPlanningRecipes) {
             return redirect()->route('meal-planning');
         }
 
-        $recipesById = $mealPlanningRecipes()->keyBy('id');
+        $recipesById = NewRecipe::query()
+            ->whereIn('id', $selectedIds->all(), 'and', false)
+            ->get()
+            ->keyBy('id');
+
         $selectedRecipes = $selectedIds
             ->map(fn ($id) => $recipesById->get($id))
             ->filter()
@@ -401,13 +349,15 @@ Route::middleware('auth')->group(function () use ($mealPlanningRecipes) {
         ]);
 
         $mealPlan->recipes()->createMany(
-            $selectedRecipes->map(function (array $recipe) {
+            $selectedRecipes->map(function (NewRecipe $recipe) {
                 return [
-                    'recipe_id' => $recipe['id'],
-                    'recipe_name' => $recipe['name'],
-                    'recipe_category' => $recipe['category'],
-                    'cook_time' => $recipe['cook_time'],
-                    'ingredients' => $recipe['ingredients'],
+                    'recipe_id' => $recipe->id,
+                    'recipe_name' => $recipe->name,
+                    'recipe_category' => $recipe->category,
+                    'cook_time' => null,
+                    'ingredients' => is_array($recipe->ingredients)
+                        ? $recipe->ingredients
+                        : [],
                 ];
             })->all()
         );
