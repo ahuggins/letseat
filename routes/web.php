@@ -220,6 +220,9 @@ Route::get('/meal-planning', function (Request $request) {
 })->middleware(['auth', 'verified'])->name('meal-planning');
 
 $renderPantryAssistantPage = function (Request $request, string $pantryInput = '') {
+    $selectedCategory = trim((string) $request->query('category', ''));
+    $selectedCuisine = trim((string) $request->query('cuisine', ''));
+
     $normalizeTerm = function (string $value): string {
         $value = strtolower($value);
         $value = preg_replace('/\([^)]*\)/', ' ', $value) ?? $value;
@@ -278,8 +281,34 @@ $renderPantryAssistantPage = function (Request $request, string $pantryInput = '
 
     $suggestions = collect();
 
+    $categoryOptions = NewRecipe::query()
+        ->pluck('category')
+        ->map(fn ($value) => trim((string) $value))
+        ->filter()
+        ->unique()
+        ->sort()
+        ->values();
+
+    $cuisineOptions = NewRecipe::query()
+        ->pluck('cuisine')
+        ->map(fn ($value) => trim((string) $value))
+        ->filter()
+        ->unique()
+        ->sort()
+        ->values();
+
     if ($normalizedPantryItems->isNotEmpty()) {
-        $suggestions = NewRecipe::query()
+        $recipeQuery = NewRecipe::query();
+
+        if ($selectedCategory !== '') {
+            $recipeQuery->where('category', $selectedCategory);
+        }
+
+        if ($selectedCuisine !== '') {
+            $recipeQuery->where('cuisine', $selectedCuisine);
+        }
+
+        $suggestions = $recipeQuery
             ->orderByDesc('created_at')
             ->limit(350)
             ->get()
@@ -315,6 +344,27 @@ $renderPantryAssistantPage = function (Request $request, string $pantryInput = '
                     })
                     ->values();
 
+                $missingIngredients = $ingredients
+                    ->filter(function ($ingredient, $index) use ($normalizedIngredients, $normalizedPantryItems) {
+                        $normalizedIngredient = (string) ($normalizedIngredients->get($index) ?? '');
+
+                        if ($normalizedIngredient === '') {
+                            return false;
+                        }
+
+                        foreach ($normalizedPantryItems as $pantryItem) {
+                            if (
+                                str_contains($normalizedIngredient, $pantryItem)
+                                || str_contains((string) $pantryItem, $normalizedIngredient)
+                            ) {
+                                return false;
+                            }
+                        }
+
+                        return true;
+                    })
+                    ->values();
+
                 $totalIngredients = $ingredients->count();
                 $matchedCount = $matchedIngredients->count();
                 $missingCount = max($totalIngredients - $matchedCount, 0);
@@ -332,6 +382,7 @@ $renderPantryAssistantPage = function (Request $request, string $pantryInput = '
                     'missing_count' => $missingCount,
                     'match_percent' => (int) round($score * 100),
                     'matched_ingredients' => $matchedIngredients->take(4)->values(),
+                    'missing_ingredients' => $missingIngredients->take(6)->values(),
                     'in_current_meal_plan' => $currentMealPlanRecipeIds->contains((int) $recipe->id),
                     'score' => $score,
                 ];
@@ -366,6 +417,14 @@ $renderPantryAssistantPage = function (Request $request, string $pantryInput = '
             ->pluck('name')
             ->values(),
         'effectivePantryItems' => $allAvailableItems,
+        'filters' => [
+            'category' => $selectedCategory,
+            'cuisine' => $selectedCuisine,
+        ],
+        'filterOptions' => [
+            'categories' => $categoryOptions,
+            'cuisines' => $cuisineOptions,
+        ],
         'suggestions' => $suggestions,
     ]);
 };
@@ -379,16 +438,22 @@ Route::get('/meal-planning/pantry', function (Request $request) use ($renderPant
 Route::post('/meal-planning/pantry', function (Request $request) {
     $validated = $request->validate([
         'pantry_input' => ['nullable', 'string', 'max:5000'],
+        'filter_category' => ['nullable', 'string', 'max:120'],
+        'filter_cuisine' => ['nullable', 'string', 'max:120'],
     ]);
 
     return redirect()->route('meal-planning.pantry', [
         'pantry_input' => trim((string) ($validated['pantry_input'] ?? '')),
+        'category' => trim((string) ($validated['filter_category'] ?? '')),
+        'cuisine' => trim((string) ($validated['filter_cuisine'] ?? '')),
     ]);
 })->middleware(['auth', 'verified'])->name('meal-planning.pantry.suggest');
 
 Route::post('/meal-planning/pantry/add-to-meal-plan', function (Request $request) {
     $validated = $request->validate([
         'pantry_input' => ['nullable', 'string', 'max:5000'],
+        'filter_category' => ['nullable', 'string', 'max:120'],
+        'filter_cuisine' => ['nullable', 'string', 'max:120'],
         'recipe_id' => ['required', 'integer', 'exists:new_recipes,id'],
     ]);
 
@@ -397,6 +462,8 @@ Route::post('/meal-planning/pantry/add-to-meal-plan', function (Request $request
     if (! $recipe) {
         return redirect()->route('meal-planning.pantry', [
             'pantry_input' => trim((string) ($validated['pantry_input'] ?? '')),
+            'category' => trim((string) ($validated['filter_category'] ?? '')),
+            'cuisine' => trim((string) ($validated['filter_cuisine'] ?? '')),
         ]);
     }
 
@@ -438,12 +505,16 @@ Route::post('/meal-planning/pantry/add-to-meal-plan', function (Request $request
 
     return redirect()->route('meal-planning.pantry', [
         'pantry_input' => trim((string) ($validated['pantry_input'] ?? '')),
+        'category' => trim((string) ($validated['filter_category'] ?? '')),
+        'cuisine' => trim((string) ($validated['filter_cuisine'] ?? '')),
     ]);
 })->middleware(['auth', 'verified'])->name('meal-planning.pantry.add-to-meal-plan');
 
 Route::post('/meal-planning/pantry/staples', function (Request $request) {
     $validated = $request->validate([
         'pantry_input' => ['nullable', 'string', 'max:5000'],
+        'filter_category' => ['nullable', 'string', 'max:120'],
+        'filter_cuisine' => ['nullable', 'string', 'max:120'],
         'staple_name' => ['required', 'string', 'max:120'],
     ]);
 
@@ -470,6 +541,8 @@ Route::post('/meal-planning/pantry/staples', function (Request $request) {
 
     return redirect()->route('meal-planning.pantry', [
         'pantry_input' => trim((string) ($validated['pantry_input'] ?? '')),
+        'category' => trim((string) ($validated['filter_category'] ?? '')),
+        'cuisine' => trim((string) ($validated['filter_cuisine'] ?? '')),
     ]);
 })->middleware(['auth', 'verified'])->name('meal-planning.pantry.staples.store');
 
@@ -480,6 +553,8 @@ Route::patch('/meal-planning/pantry/staples/{pantryStaple}', function (Request $
 
     $validated = $request->validate([
         'pantry_input' => ['nullable', 'string', 'max:5000'],
+        'filter_category' => ['nullable', 'string', 'max:120'],
+        'filter_cuisine' => ['nullable', 'string', 'max:120'],
         'is_in_stock' => ['required', 'boolean'],
     ]);
 
@@ -489,6 +564,8 @@ Route::patch('/meal-planning/pantry/staples/{pantryStaple}', function (Request $
 
     return redirect()->route('meal-planning.pantry', [
         'pantry_input' => trim((string) ($validated['pantry_input'] ?? '')),
+        'category' => trim((string) ($validated['filter_category'] ?? '')),
+        'cuisine' => trim((string) ($validated['filter_cuisine'] ?? '')),
     ]);
 })->middleware(['auth', 'verified'])->name('meal-planning.pantry.staples.update');
 
@@ -499,12 +576,16 @@ Route::delete('/meal-planning/pantry/staples/{pantryStaple}', function (Request 
 
     $validated = $request->validate([
         'pantry_input' => ['nullable', 'string', 'max:5000'],
+        'filter_category' => ['nullable', 'string', 'max:120'],
+        'filter_cuisine' => ['nullable', 'string', 'max:120'],
     ]);
 
     $pantryStaple->delete();
 
     return redirect()->route('meal-planning.pantry', [
         'pantry_input' => trim((string) ($validated['pantry_input'] ?? '')),
+        'category' => trim((string) ($validated['filter_category'] ?? '')),
+        'cuisine' => trim((string) ($validated['filter_cuisine'] ?? '')),
     ]);
 })->middleware(['auth', 'verified'])->name('meal-planning.pantry.staples.destroy');
 

@@ -14,6 +14,7 @@ type PantrySuggestion = {
     missing_count: number;
     match_percent: number;
     matched_ingredients: string[];
+    missing_ingredients?: string[];
     in_current_meal_plan?: boolean;
 };
 
@@ -28,18 +29,32 @@ export default function MealPlanningPantry({
     pantryInput,
     pantryItems,
     pantryStaples,
-    effectivePantryItems,
+    filters,
+    filterOptions,
     suggestions,
 }: {
     auth: any;
     pantryInput: string;
     pantryItems: string[];
     pantryStaples: PantryStaple[];
-    effectivePantryItems: string[];
+    filters: {
+        category?: string;
+        cuisine?: string;
+    };
+    filterOptions: {
+        categories: string[];
+        cuisines: string[];
+    };
     suggestions: PantrySuggestion[];
 }) {
     const [inputValue, setInputValue] = useState(pantryInput ?? "");
     const [stapleName, setStapleName] = useState("");
+    const [selectedCategory, setSelectedCategory] = useState(
+        filters?.category ?? "",
+    );
+    const [selectedCuisine, setSelectedCuisine] = useState(
+        filters?.cuisine ?? "",
+    );
     const inStockStaples = pantryStaples.filter((staple) => staple.is_in_stock);
     const outOfStockStaples = pantryStaples.filter(
         (staple) => !staple.is_in_stock,
@@ -49,10 +64,43 @@ export default function MealPlanningPantry({
         setInputValue(pantryInput ?? "");
     }, [pantryInput]);
 
-    function suggestMeals() {
-        router.post(route("meal-planning.pantry.suggest"), {
+    useEffect(() => {
+        setSelectedCategory(filters?.category ?? "");
+        setSelectedCuisine(filters?.cuisine ?? "");
+    }, [filters?.category, filters?.cuisine]);
+
+    function pantryRequestPayload(extra?: Record<string, unknown>) {
+        return {
             pantry_input: inputValue,
-        });
+            filter_category: selectedCategory,
+            filter_cuisine: selectedCuisine,
+            ...extra,
+        };
+    }
+
+    function applyFilters(nextCategory: string, nextCuisine: string) {
+        setSelectedCategory(nextCategory);
+        setSelectedCuisine(nextCuisine);
+
+        router.get(
+            route("meal-planning.pantry"),
+            {
+                pantry_input: inputValue,
+                category: nextCategory,
+                cuisine: nextCuisine,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+            },
+        );
+    }
+
+    function suggestMeals() {
+        router.post(
+            route("meal-planning.pantry.suggest"),
+            pantryRequestPayload(),
+        );
     }
 
     function addStaple() {
@@ -62,10 +110,9 @@ export default function MealPlanningPantry({
 
         router.post(
             route("meal-planning.pantry.staples.store"),
-            {
-                pantry_input: inputValue,
+            pantryRequestPayload({
                 staple_name: stapleName.trim(),
-            },
+            }),
             {
                 preserveState: true,
                 preserveScroll: true,
@@ -79,10 +126,9 @@ export default function MealPlanningPantry({
     function updateStapleStock(staple: PantryStaple, isInStock: boolean) {
         router.patch(
             route("meal-planning.pantry.staples.update", staple.id),
-            {
-                pantry_input: inputValue,
+            pantryRequestPayload({
                 is_in_stock: isInStock,
-            },
+            }),
             {
                 preserveState: true,
                 preserveScroll: true,
@@ -94,9 +140,7 @@ export default function MealPlanningPantry({
         router.delete(
             route("meal-planning.pantry.staples.destroy", staple.id),
             {
-                data: {
-                    pantry_input: inputValue,
-                },
+                data: pantryRequestPayload(),
                 preserveState: true,
                 preserveScroll: true,
             },
@@ -105,16 +149,17 @@ export default function MealPlanningPantry({
 
     function clearPantry() {
         setInputValue("");
+        setSelectedCategory("");
+        setSelectedCuisine("");
         router.get(route("meal-planning.pantry"));
     }
 
     function addToMealPlan(recipeId: number) {
         router.post(
             route("meal-planning.pantry.add-to-meal-plan"),
-            {
-                pantry_input: inputValue,
+            pantryRequestPayload({
                 recipe_id: recipeId,
-            },
+            }),
             {
                 preserveState: true,
                 preserveScroll: true,
@@ -151,7 +196,7 @@ export default function MealPlanningPantry({
                         </p>
                     </section>
 
-                    {effectivePantryItems.length ? (
+                    {pantryItems.length ? (
                         <section
                             className="mb-6 rounded-2xl border border-red-200 bg-white p-5 shadow-sm"
                             data-testid="meal-planning-pantry-effective-items"
@@ -160,7 +205,7 @@ export default function MealPlanningPantry({
                                 Used for suggestions right now
                             </h2>
                             <div className="mt-3 flex flex-wrap gap-2">
-                                {effectivePantryItems.map((item) => (
+                                {pantryItems.map((item) => (
                                     <span
                                         key={item}
                                         className="inline-flex rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-medium text-red-800"
@@ -169,6 +214,15 @@ export default function MealPlanningPantry({
                                     </span>
                                 ))}
                             </div>
+                            <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
+                                Plus your usual pantry ({inStockStaples.length}{" "}
+                                item
+                                {inStockStaples.length === 1 ? "" : "s"}
+                                {outOfStockStaples.length
+                                    ? `, ${outOfStockStaples.length} out of stock`
+                                    : ""}
+                                )
+                            </p>
                         </section>
                     ) : null}
                     <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
@@ -204,14 +258,6 @@ export default function MealPlanningPantry({
                                                 {suggestion.matched_count} of{" "}
                                                 {suggestion.total_ingredients}{" "}
                                                 ingredients matched
-                                            </p>
-                                            <p className="text-xs text-zinc-500">
-                                                Missing about{" "}
-                                                {suggestion.missing_count}{" "}
-                                                ingredient
-                                                {suggestion.missing_count === 1
-                                                    ? ""
-                                                    : "s"}
                                             </p>
 
                                             {suggestion.matched_ingredients
@@ -257,6 +303,68 @@ export default function MealPlanningPantry({
                                                     ) : null}
                                                 </div>
                                             </div>
+
+                                            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/60 p-3">
+                                                <div className="flex items-center gap-2">
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        strokeWidth={1.5}
+                                                        stroke="currentColor"
+                                                        className="size-4 text-amber-700"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"
+                                                        />
+                                                    </svg>
+
+                                                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
+                                                        To cook this
+                                                    </p>
+                                                </div>
+                                                <p className="mt-1 text-sm font-medium text-zinc-800">
+                                                    Missing{" "}
+                                                    {suggestion.missing_count}{" "}
+                                                    ingredient
+                                                    {suggestion.missing_count ===
+                                                    1
+                                                        ? ""
+                                                        : "s"}
+                                                </p>
+
+                                                {suggestion.missing_ingredients
+                                                    ?.length ? (
+                                                    <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-zinc-700">
+                                                        {suggestion.missing_ingredients.map(
+                                                            (ingredient) => (
+                                                                <li
+                                                                    key={
+                                                                        ingredient
+                                                                    }
+                                                                >
+                                                                    {ingredient}
+                                                                </li>
+                                                            ),
+                                                        )}
+                                                        {suggestion.missing_count >
+                                                        suggestion
+                                                            .missing_ingredients
+                                                            .length ? (
+                                                            <li className="list-none pl-0 text-zinc-500">
+                                                                +
+                                                                {suggestion.missing_count -
+                                                                    suggestion
+                                                                        .missing_ingredients
+                                                                        .length}{" "}
+                                                                more
+                                                            </li>
+                                                        ) : null}
+                                                    </ul>
+                                                ) : null}
+                                            </div>
                                         </article>
                                     ))}
                                 </section>
@@ -301,6 +409,78 @@ export default function MealPlanningPantry({
                                     Add one item per line (commas also work).
                                 </p>
 
+                                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                                    <div>
+                                        <label
+                                            htmlFor="pantry-filter-category"
+                                            className="mb-1 block text-xs font-semibold uppercase tracking-[0.18em] text-red-700/80"
+                                        >
+                                            Category
+                                        </label>
+                                        <select
+                                            id="pantry-filter-category"
+                                            value={selectedCategory}
+                                            onChange={(e) =>
+                                                applyFilters(
+                                                    e.target.value,
+                                                    selectedCuisine,
+                                                )
+                                            }
+                                            className="h-10 w-full rounded-xl border border-red-200 bg-white px-3 text-sm text-zinc-900 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-200"
+                                            data-testid="meal-planning-pantry-filter-category"
+                                        >
+                                            <option value="">
+                                                All categories
+                                            </option>
+                                            {filterOptions.categories.map(
+                                                (category) => (
+                                                    <option
+                                                        key={category}
+                                                        value={category}
+                                                    >
+                                                        {category}
+                                                    </option>
+                                                ),
+                                            )}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label
+                                            htmlFor="pantry-filter-cuisine"
+                                            className="mb-1 block text-xs font-semibold uppercase tracking-[0.18em] text-red-700/80"
+                                        >
+                                            Cuisine
+                                        </label>
+                                        <select
+                                            id="pantry-filter-cuisine"
+                                            value={selectedCuisine}
+                                            onChange={(e) =>
+                                                applyFilters(
+                                                    selectedCategory,
+                                                    e.target.value,
+                                                )
+                                            }
+                                            className="h-10 w-full rounded-xl border border-red-200 bg-white px-3 text-sm text-zinc-900 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-200"
+                                            data-testid="meal-planning-pantry-filter-cuisine"
+                                        >
+                                            <option value="">
+                                                All cuisines
+                                            </option>
+                                            {filterOptions.cuisines.map(
+                                                (cuisine) => (
+                                                    <option
+                                                        key={cuisine}
+                                                        value={cuisine}
+                                                    >
+                                                        {cuisine}
+                                                    </option>
+                                                ),
+                                            )}
+                                        </select>
+                                    </div>
+                                </div>
+
                                 <div className="mt-4 flex flex-wrap items-center gap-2">
                                     <button
                                         type="button"
@@ -320,27 +500,6 @@ export default function MealPlanningPantry({
                                     </button>
                                 </div>
                             </section>
-
-                            {pantryItems.length ? (
-                                <section
-                                    className="rounded-2xl border border-red-200 bg-white p-5 shadow-sm"
-                                    data-testid="meal-planning-pantry-items"
-                                >
-                                    <h2 className="font-serif text-2xl font-semibold text-zinc-900">
-                                        One-off items in this check
-                                    </h2>
-                                    <div className="mt-3 flex flex-wrap gap-2">
-                                        {pantryItems.map((item) => (
-                                            <span
-                                                key={item}
-                                                className="inline-flex rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-medium text-red-800"
-                                            >
-                                                {item}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </section>
-                            ) : null}
 
                             <section
                                 className="rounded-2xl border border-red-200 bg-white p-5 shadow-sm"
