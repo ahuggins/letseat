@@ -21,7 +21,7 @@ class RegisteredUserController extends Controller
     private const DEFAULT_PANTRY_STAPLES = [
         'Water',
         'Salt',
-        'Pepper',
+        'Black Pepper',
         'Olive Oil',
         'Flour',
     ];
