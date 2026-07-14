@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\NewRecipe;
+use App\Models\PantryStaple;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -17,6 +18,14 @@ use Inertia\Response;
 
 class RegisteredUserController extends Controller
 {
+    private const DEFAULT_PANTRY_STAPLES = [
+        'Water',
+        'Salt',
+        'Pepper',
+        'Olive Oil',
+        'Flour',
+    ];
+
     /**
      * Display the registration view.
      */
@@ -80,6 +89,18 @@ class RegisteredUserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
         ]);
+
+        foreach (self::DEFAULT_PANTRY_STAPLES as $stapleName) {
+            PantryStaple::firstOrCreate(
+                [
+                    'user_id' => $user->id,
+                    'name' => $stapleName,
+                ],
+                [
+                    'is_in_stock' => true,
+                ],
+            );
+        }
 
         event(new Registered($user));
 
