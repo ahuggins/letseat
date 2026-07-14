@@ -12,6 +12,8 @@ class NewRecipe extends Model
 {
     use HasFactory, Searchable;
 
+    private const MAX_REASONABLE_COOK_MINUTES = 24 * 60;
+
     protected $guarded = [];
 
     protected $with = ['user', 'comments', 'comments.commentator'];
@@ -140,14 +142,20 @@ class NewRecipe extends Model
             return null;
         }
 
-        if (! preg_match('/^P(?!$)/', $trimmed)) {
+        if (! preg_match('/^P(?!$)/i', $trimmed)) {
             return $trimmed;
+        }
+
+        $parsedMinutes = $this->parseIsoDurationMinutes($trimmed);
+
+        if ($parsedMinutes !== null) {
+            return $this->formatMinutesLabel($parsedMinutes);
         }
 
         try {
             $interval = new \DateInterval($trimmed);
         } catch (\Exception) {
-            return $trimmed;
+            return null;
         }
 
         $totalMinutes = ($interval->y * 525600)
@@ -156,8 +164,64 @@ class NewRecipe extends Model
             + ($interval->h * 60)
             + $interval->i;
 
+        if ($totalMinutes <= 0 && $interval->s > 0) {
+            $totalMinutes = 1;
+        }
+
+        if ($totalMinutes > self::MAX_REASONABLE_COOK_MINUTES) {
+            return null;
+        }
+
+        return $this->formatMinutesLabel($totalMinutes);
+    }
+
+    private function parseIsoDurationMinutes(string $value): ?int
+    {
+        $trimmed = trim($value);
+
+        // Invalid source data sometimes contains negative segments like PT-495529H5M.
+        if (str_contains($trimmed, '-')) {
+            return null;
+        }
+
+        if (! preg_match(
+            '/^P(?:(?<years>\d+)Y)?(?:(?<months>\d+)M)?(?:(?<weeks>\d+)W)?(?:(?<days>\d+)D)?(?:T(?:(?<hours>\d+)H)?(?:(?<minutes>\d+)M)?(?:(?<seconds>\d+)S)?)?$/i',
+            $trimmed,
+            $parts,
+        )) {
+            return null;
+        }
+
+        $years = abs((int) ($parts['years'] ?? 0));
+        $months = abs((int) ($parts['months'] ?? 0));
+        $weeks = abs((int) ($parts['weeks'] ?? 0));
+        $days = abs((int) ($parts['days'] ?? 0));
+        $hours = abs((int) ($parts['hours'] ?? 0));
+        $minutes = abs((int) ($parts['minutes'] ?? 0));
+        $seconds = abs((int) ($parts['seconds'] ?? 0));
+
+        $totalMinutes = ($years * 525600)
+            + ($months * 43200)
+            + ($weeks * 10080)
+            + ($days * 1440)
+            + ($hours * 60)
+            + $minutes;
+
+        if ($totalMinutes <= 0 && $seconds > 0) {
+            return 1;
+        }
+
+        if ($totalMinutes > self::MAX_REASONABLE_COOK_MINUTES) {
+            return null;
+        }
+
+        return $totalMinutes > 0 ? $totalMinutes : null;
+    }
+
+    private function formatMinutesLabel(int $totalMinutes): ?string
+    {
         if ($totalMinutes <= 0) {
-            return $interval->s > 0 ? '1 min' : null;
+            return null;
         }
 
         $hours = intdiv($totalMinutes, 60);
