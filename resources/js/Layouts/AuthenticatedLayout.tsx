@@ -351,6 +351,17 @@ export default function Authenticated({
             </nav>
 
             <main>{children}</main>
+
+            <footer className="border-t border-red-100 bg-white py-4">
+                <div className="mx-auto max-w-7xl px-4 text-center text-xs text-zinc-600 sm:px-6 lg:px-8">
+                    <Link
+                        href={route("privacy-policy")}
+                        className="font-medium text-red-700 hover:text-red-800"
+                    >
+                        Privacy Policy
+                    </Link>
+                </div>
+            </footer>
         </div>
     );
 }

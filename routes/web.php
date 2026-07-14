@@ -18,6 +18,8 @@ Route::get('/', function () {
     return redirect()->route('recipes');
 });
 
+Route::view('/privacy-policy', 'privacy-policy')->name('privacy-policy');
+
 $renderRecipeIndex = function (Request $request, bool $favoritesOnly = false, bool $madesOnly = false) {
     $user = $request->query('user');
     $query = trim((string) $request->query('q', ''));

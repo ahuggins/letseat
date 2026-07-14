@@ -73,6 +73,15 @@ export default function Guest({
                     </div>
                 </div>
             </div>
+
+            <footer className="relative mt-5 text-center text-xs text-zinc-600">
+                <Link
+                    href={route("privacy-policy")}
+                    className="font-medium text-red-700 hover:text-red-800"
+                >
+                    Privacy Policy
+                </Link>
+            </footer>
         </div>
     );
 }
