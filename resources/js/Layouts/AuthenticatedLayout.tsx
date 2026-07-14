@@ -16,6 +16,10 @@ export default function Authenticated({
         useState(false);
     const isFavoritesSection =
         route().current("favorites") || route().current("makes");
+    const isMealPlanningSection =
+        route().current("meal-planning") ||
+        route().current("meal-planning.list") ||
+        route().current("meal-planning.previous");
 
     function handleSearchSubmit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -57,15 +61,53 @@ export default function Authenticated({
                                 >
                                     Add Recipe
                                 </NavLink>
-                                <NavLink
-                                    href={route("meal-planning")}
-                                    active={
-                                        route().current("meal-planning") ||
-                                        route().current("meal-planning.list")
-                                    }
-                                >
-                                    Meal Planning
-                                </NavLink>
+                                <div className="group relative">
+                                    <Link
+                                        href={route("meal-planning")}
+                                        className={
+                                            "inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-none " +
+                                            (isMealPlanningSection
+                                                ? "border-indigo-400 text-gray-900 "
+                                                : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700")
+                                        }
+                                    >
+                                        Meal Planning
+                                    </Link>
+
+                                    <div className="absolute left-0 top-full z-50 hidden min-w-[11rem] pt-1 group-hover:block group-focus-within:block">
+                                        <div className="absolute -top-2 left-0 h-2 w-full" />
+                                        <div className="rounded-xl border border-red-100 bg-white p-1 shadow-lg">
+                                            <Link
+                                                href={route("meal-planning")}
+                                                className={
+                                                    "block rounded-lg px-3 py-2 text-sm transition " +
+                                                    (route().current(
+                                                        "meal-planning",
+                                                    )
+                                                        ? "bg-red-50 text-red-700"
+                                                        : "text-zinc-700 hover:bg-red-50 hover:text-red-700")
+                                                }
+                                            >
+                                                Plan This Week
+                                            </Link>
+                                            <Link
+                                                href={route(
+                                                    "meal-planning.previous",
+                                                )}
+                                                className={
+                                                    "block rounded-lg px-3 py-2 text-sm transition " +
+                                                    (route().current(
+                                                        "meal-planning.previous",
+                                                    )
+                                                        ? "bg-red-50 text-red-700"
+                                                        : "text-zinc-700 hover:bg-red-50 hover:text-red-700")
+                                                }
+                                            >
+                                                Previous Plans
+                                            </Link>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div className="group relative">
                                     <Link
                                         href={route("favorites")}
@@ -238,6 +280,14 @@ export default function Authenticated({
                                 }
                             >
                                 Meal Planning
+                            </ResponsiveNavLink>
+                            <ResponsiveNavLink
+                                href={route("meal-planning.previous")}
+                                active={route().current(
+                                    "meal-planning.previous",
+                                )}
+                            >
+                                Previous Plans
                             </ResponsiveNavLink>
                             <ResponsiveNavLink
                                 href={route("favorites")}

@@ -217,6 +217,30 @@ Route::get('/meal-planning', function (Request $request) {
     ]);
 })->middleware(['auth', 'verified'])->name('meal-planning');
 
+Route::get('/meal-planning/previous', function (Request $request) {
+    $plans = MealPlan::query()
+        ->where('user_id', $request->user()->id)
+        ->withCount('recipes')
+        ->orderByDesc('week_start')
+        ->orderByDesc('created_at')
+        ->paginate(15)
+        ->withQueryString()
+        ->through(function (MealPlan $plan) {
+            return [
+                'id' => $plan->id,
+                'name' => $plan->name,
+                'week_start' => $plan->week_start?->toDateString(),
+                'week_end' => $plan->week_end?->toDateString(),
+                'recipes_count' => $plan->recipes_count,
+                'created_at' => $plan->created_at,
+            ];
+        });
+
+    return Inertia::render('MealPlanningPrevious', [
+        'plans' => $plans,
+    ]);
+})->middleware(['auth', 'verified'])->name('meal-planning.previous');
+
 Route::get('/meal-planning/list/{mealPlan}', function (Request $request, MealPlan $mealPlan) {
     if ((int) $mealPlan->user_id !== (int) $request->user()->id) {
         abort(403);
