@@ -229,6 +229,15 @@ export default function MealPlanningList({
                                 mealPlan.week_end,
                             )}
                         </p>
+                        <div className="mb-3">
+                            <Link
+                                href={route("meal-planning.edit", mealPlan.id)}
+                                className="inline-flex rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-medium text-red-700 transition-colors hover:bg-red-100"
+                                data-testid="meal-planning-edit-plan"
+                            >
+                                Edit meals in this plan
+                            </Link>
+                        </div>
                         <h2 className="font-serif text-2xl font-semibold text-zinc-900">
                             Meals in this list
                         </h2>

@@ -8,6 +8,7 @@ use App\Models\MealPlan;
 use App\Models\NewRecipe;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -299,6 +300,65 @@ Route::get('/meal-planning/list/{mealPlan}', function (Request $request, MealPla
     ]);
 })->middleware(['auth', 'verified'])->name('meal-planning.list');
 
+Route::get('/meal-planning/{mealPlan}/edit', function (Request $request, MealPlan $mealPlan) {
+    if ((int) $mealPlan->user_id !== (int) $request->user()->id) {
+        abort(403);
+    }
+
+    $query = trim((string) $request->query('q', ''));
+
+    $recipes = NewRecipe::query()
+        ->when($query !== '', function ($builder) use ($query) {
+            $builder->where(function ($queryBuilder) use ($query) {
+                $queryBuilder
+                    ->where('name', 'like', "%{$query}%")
+                    ->orWhere('category', 'like', "%{$query}%")
+                    ->orWhere('description', 'like', "%{$query}%")
+                    ->orWhere('ingredients', 'like', "%{$query}%");
+            });
+        })
+        ->orderByDesc('created_at')
+        ->limit(60)
+        ->get()
+        ->map(function (NewRecipe $recipe) {
+            $ingredients = is_array($recipe->ingredients)
+                ? $recipe->ingredients
+                : [];
+
+            return [
+                'id' => $recipe->id,
+                'name' => html_entity_decode($recipe->name, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+                'category' => $recipe->category ?: 'Uncategorized',
+                'cook_time' => $recipe->planningCookTimeLabel(),
+                'image' => $recipe->image,
+                'description' => $recipe->description,
+                'ingredients' => $ingredients,
+            ];
+        })
+        ->values();
+
+    $selectedIds = $mealPlan->recipes()
+        ->orderBy('id')
+        ->pluck('recipe_id')
+        ->map(fn ($id) => (int) $id)
+        ->values();
+
+    return Inertia::render('MealPlanningEdit', [
+        'mealPlan' => [
+            'id' => $mealPlan->id,
+            'name' => $mealPlan->name,
+            'week_start' => $mealPlan->week_start?->toDateString(),
+            'week_end' => $mealPlan->week_end?->toDateString(),
+            'created_at' => $mealPlan->created_at,
+        ],
+        'recipes' => $recipes,
+        'selectedIds' => $selectedIds,
+        'filters' => [
+            'q' => $query,
+        ],
+    ]);
+})->middleware(['auth', 'verified'])->name('meal-planning.edit');
+
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -391,6 +451,65 @@ Route::middleware('auth')->group(function () {
 
         return redirect()->route('meal-planning.list', $mealPlan->id);
     })->name('meal-planning.assemble');
+    Route::patch('/meal-planning/{mealPlan}/recipes', function (Request $request, MealPlan $mealPlan) {
+        if ((int) $mealPlan->user_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'selected_ids' => ['required', 'array', 'min:1'],
+            'selected_ids.*' => ['integer'],
+        ]);
+
+        $selectedIds = collect($validated['selected_ids'])
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values();
+
+        if ($selectedIds->isEmpty()) {
+            return back(303);
+        }
+
+        $recipesById = NewRecipe::query()
+            ->whereIn('id', $selectedIds->all(), 'and', false)
+            ->get()
+            ->keyBy('id');
+
+        $selectedRecipes = $selectedIds
+            ->map(fn ($id) => $recipesById->get($id))
+            ->filter()
+            ->values();
+
+        if ($selectedRecipes->isEmpty()) {
+            return back(303);
+        }
+
+        DB::transaction(function () use ($mealPlan, $selectedRecipes) {
+            $mealPlan->recipes()->delete();
+
+            $mealPlan->recipes()->createMany(
+                $selectedRecipes->map(function (NewRecipe $recipe) {
+                    return [
+                        'recipe_id' => $recipe->id,
+                        'recipe_name' => $recipe->name,
+                        'recipe_category' => $recipe->category,
+                        'cook_time' => $recipe->planningCookTimeLabel(),
+                        'ingredients' => is_array($recipe->ingredients)
+                            ? $recipe->ingredients
+                            : [],
+                    ];
+                })->all()
+            );
+
+            $mealPlan->update([
+                'checked_item_ids' => [],
+                'pantry_item_ids' => [],
+            ]);
+        });
+
+        return redirect()->route('meal-planning.list', $mealPlan->id);
+    })->name('meal-planning.update');
     Route::patch('/meal-planning/list/{mealPlan}/state', function (Request $request, MealPlan $mealPlan) {
         if ((int) $mealPlan->user_id !== (int) $request->user()->id) {
             abort(403);

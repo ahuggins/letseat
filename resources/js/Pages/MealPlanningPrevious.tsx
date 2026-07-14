@@ -86,16 +86,28 @@ export default function MealPlanningPrevious({
                                         </p>
                                     </div>
 
-                                    <Link
-                                        href={route(
-                                            "meal-planning.list",
-                                            plan.id,
-                                        )}
-                                        className="shrink-0 rounded-full bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600"
-                                        data-testid={`meal-planning-open-previous-plan-${plan.id}`}
-                                    >
-                                        Open list
-                                    </Link>
+                                    <div className="flex items-center gap-2">
+                                        <Link
+                                            href={route(
+                                                "meal-planning.edit",
+                                                plan.id,
+                                            )}
+                                            className="shrink-0 rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-100"
+                                            data-testid={`meal-planning-edit-previous-plan-${plan.id}`}
+                                        >
+                                            Edit plan
+                                        </Link>
+                                        <Link
+                                            href={route(
+                                                "meal-planning.list",
+                                                plan.id,
+                                            )}
+                                            className="shrink-0 rounded-full bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600"
+                                            data-testid={`meal-planning-open-previous-plan-${plan.id}`}
+                                        >
+                                            Open list
+                                        </Link>
+                                    </div>
                                 </article>
                             ))}
 

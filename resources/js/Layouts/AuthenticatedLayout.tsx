@@ -19,6 +19,7 @@ export default function Authenticated({
     const isMealPlanningSection =
         route().current("meal-planning") ||
         route().current("meal-planning.list") ||
+        route().current("meal-planning.edit") ||
         route().current("meal-planning.previous");
 
     function handleSearchSubmit(e: FormEvent<HTMLFormElement>) {
