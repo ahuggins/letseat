@@ -6,6 +6,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RecipeController;
 use App\Models\MealPlan;
 use App\Models\NewRecipe;
+use App\Models\PantryStaple;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -217,6 +218,295 @@ Route::get('/meal-planning', function (Request $request) {
         'savedPlans' => $savedPlans,
     ]);
 })->middleware(['auth', 'verified'])->name('meal-planning');
+
+$renderPantryAssistantPage = function (Request $request, string $pantryInput = '') {
+    $normalizeTerm = function (string $value): string {
+        $value = strtolower($value);
+        $value = preg_replace('/\([^)]*\)/', ' ', $value) ?? $value;
+        $value = preg_replace('/^\s*\d+[\d\s\/\.-]*/', ' ', $value) ?? $value;
+        $value = preg_replace('/\b(cup|cups|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons|oz|ounce|ounces|lb|lbs|pound|pounds|g|gram|grams|kg|ml|l|clove|cloves|slice|slices|can|cans|package|packages|pinch|bunch)\b/', ' ', $value) ?? $value;
+        $value = preg_replace('/[^a-z0-9\s]/', ' ', $value) ?? $value;
+        $value = preg_replace('/\s+/', ' ', $value) ?? $value;
+
+        return trim($value);
+    };
+
+    $pantryItems = collect(preg_split('/[\r\n,]+/', $pantryInput) ?: [])
+        ->map(fn ($item) => trim((string) $item))
+        ->filter()
+        ->unique()
+        ->values();
+
+    $pantryStaples = PantryStaple::query()
+        ->where('user_id', $request->user()->id)
+        ->orderBy('name')
+        ->get();
+
+    $inStockStapleItems = $pantryStaples
+        ->where('is_in_stock', true)
+        ->pluck('name')
+        ->map(fn ($item) => trim((string) $item))
+        ->filter()
+        ->values();
+
+    $currentMealPlan = MealPlan::query()
+        ->where('user_id', $request->user()->id)
+        ->latest()
+        ->first();
+
+    $currentMealPlanRecipeIds = $currentMealPlan
+        ? $currentMealPlan->recipes()
+            ->pluck('recipe_id')
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values()
+        : collect();
+
+    $allAvailableItems = $pantryItems
+        ->concat($inStockStapleItems)
+        ->map(fn ($item) => trim((string) $item))
+        ->filter()
+        ->unique()
+        ->values();
+
+    $normalizedPantryItems = $allAvailableItems
+        ->map(fn ($item) => $normalizeTerm($item))
+        ->filter()
+        ->unique()
+        ->values();
+
+    $suggestions = collect();
+
+    if ($normalizedPantryItems->isNotEmpty()) {
+        $suggestions = NewRecipe::query()
+            ->orderByDesc('created_at')
+            ->limit(350)
+            ->get()
+            ->map(function (NewRecipe $recipe) use ($normalizeTerm, $normalizedPantryItems, $currentMealPlanRecipeIds) {
+                $ingredients = collect(is_array($recipe->ingredients) ? $recipe->ingredients : [])
+                    ->map(fn ($item) => trim((string) $item))
+                    ->filter()
+                    ->values();
+
+                $normalizedIngredients = $ingredients
+                    ->map(fn ($item) => $normalizeTerm($item))
+                    ->filter()
+                    ->values();
+
+                $matchedIngredients = $ingredients
+                    ->filter(function ($ingredient, $index) use ($normalizedIngredients, $normalizedPantryItems) {
+                        $normalizedIngredient = (string) ($normalizedIngredients->get($index) ?? '');
+
+                        if ($normalizedIngredient === '') {
+                            return false;
+                        }
+
+                        foreach ($normalizedPantryItems as $pantryItem) {
+                            if (
+                                str_contains($normalizedIngredient, $pantryItem)
+                                || str_contains((string) $pantryItem, $normalizedIngredient)
+                            ) {
+                                return true;
+                            }
+                        }
+
+                        return false;
+                    })
+                    ->values();
+
+                $totalIngredients = $ingredients->count();
+                $matchedCount = $matchedIngredients->count();
+                $missingCount = max($totalIngredients - $matchedCount, 0);
+                $score = $totalIngredients > 0 ? $matchedCount / $totalIngredients : 0;
+
+                return [
+                    'id' => $recipe->id,
+                    'slug' => $recipe->slug,
+                    'name' => html_entity_decode($recipe->name, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+                    'category' => $recipe->category ?: 'Uncategorized',
+                    'image' => $recipe->image,
+                    'description' => $recipe->description,
+                    'matched_count' => $matchedCount,
+                    'total_ingredients' => $totalIngredients,
+                    'missing_count' => $missingCount,
+                    'match_percent' => (int) round($score * 100),
+                    'matched_ingredients' => $matchedIngredients->take(4)->values(),
+                    'in_current_meal_plan' => $currentMealPlanRecipeIds->contains((int) $recipe->id),
+                    'score' => $score,
+                ];
+            })
+            ->filter(fn ($item) => $item['matched_count'] > 0)
+            ->sortBy([
+                ['match_percent', 'desc'],
+                ['matched_count', 'desc'],
+                ['total_ingredients', 'asc'],
+            ])
+            ->take(30)
+            ->values()
+            ->map(function ($item) {
+                unset($item['score']);
+
+                return $item;
+            });
+    }
+
+    return Inertia::render('MealPlanningPantry', [
+        'pantryInput' => $pantryInput,
+        'pantryItems' => $pantryItems,
+        'pantryStaples' => $pantryStaples
+            ->map(fn (PantryStaple $staple) => [
+                'id' => $staple->id,
+                'name' => $staple->name,
+                'is_in_stock' => (bool) $staple->is_in_stock,
+            ])
+            ->values(),
+        'shoppingListItems' => $pantryStaples
+            ->where('is_in_stock', false)
+            ->pluck('name')
+            ->values(),
+        'effectivePantryItems' => $allAvailableItems,
+        'suggestions' => $suggestions,
+    ]);
+};
+
+Route::get('/meal-planning/pantry', function (Request $request) use ($renderPantryAssistantPage) {
+    $pantryInput = trim((string) $request->query('pantry_input', ''));
+
+    return $renderPantryAssistantPage($request, $pantryInput);
+})->middleware(['auth', 'verified'])->name('meal-planning.pantry');
+
+Route::post('/meal-planning/pantry', function (Request $request) {
+    $validated = $request->validate([
+        'pantry_input' => ['nullable', 'string', 'max:5000'],
+    ]);
+
+    return redirect()->route('meal-planning.pantry', [
+        'pantry_input' => trim((string) ($validated['pantry_input'] ?? '')),
+    ]);
+})->middleware(['auth', 'verified'])->name('meal-planning.pantry.suggest');
+
+Route::post('/meal-planning/pantry/add-to-meal-plan', function (Request $request) {
+    $validated = $request->validate([
+        'pantry_input' => ['nullable', 'string', 'max:5000'],
+        'recipe_id' => ['required', 'integer', 'exists:new_recipes,id'],
+    ]);
+
+    $recipe = NewRecipe::query()->find((int) $validated['recipe_id']);
+
+    if (! $recipe) {
+        return redirect()->route('meal-planning.pantry', [
+            'pantry_input' => trim((string) ($validated['pantry_input'] ?? '')),
+        ]);
+    }
+
+    $mealPlan = MealPlan::query()
+        ->where('user_id', $request->user()->id)
+        ->latest()
+        ->first();
+
+    if (! $mealPlan) {
+        $weekStart = Carbon::now()->startOfDay();
+        $weekEnd = Carbon::now()->addDays(7)->startOfDay();
+
+        $mealPlan = MealPlan::create([
+            'user_id' => $request->user()->id,
+            'name' => sprintf('Week of %s', $weekStart->format('F j, Y')),
+            'week_start' => $weekStart,
+            'week_end' => $weekEnd,
+            'checked_item_ids' => [],
+            'pantry_item_ids' => [],
+            'checklist_view_mode' => 'combined',
+        ]);
+    }
+
+    $alreadyInPlan = $mealPlan->recipes()
+        ->where('recipe_id', $recipe->id)
+        ->exists();
+
+    if (! $alreadyInPlan) {
+        $mealPlan->recipes()->create([
+            'recipe_id' => $recipe->id,
+            'recipe_name' => $recipe->name,
+            'recipe_category' => $recipe->category,
+            'cook_time' => $recipe->planningCookTimeLabel(),
+            'ingredients' => is_array($recipe->ingredients)
+                ? $recipe->ingredients
+                : [],
+        ]);
+    }
+
+    return redirect()->route('meal-planning.pantry', [
+        'pantry_input' => trim((string) ($validated['pantry_input'] ?? '')),
+    ]);
+})->middleware(['auth', 'verified'])->name('meal-planning.pantry.add-to-meal-plan');
+
+Route::post('/meal-planning/pantry/staples', function (Request $request) {
+    $validated = $request->validate([
+        'pantry_input' => ['nullable', 'string', 'max:5000'],
+        'staple_name' => ['required', 'string', 'max:120'],
+    ]);
+
+    $name = trim((string) $validated['staple_name']);
+
+    if ($name !== '') {
+        $existingStaple = PantryStaple::query()
+            ->where('user_id', $request->user()->id)
+            ->whereRaw('lower(name) = ?', [mb_strtolower($name)])
+            ->first();
+
+        if ($existingStaple) {
+            $existingStaple->update([
+                'is_in_stock' => true,
+            ]);
+        } else {
+            PantryStaple::create([
+                'user_id' => $request->user()->id,
+                'name' => $name,
+                'is_in_stock' => true,
+            ]);
+        }
+    }
+
+    return redirect()->route('meal-planning.pantry', [
+        'pantry_input' => trim((string) ($validated['pantry_input'] ?? '')),
+    ]);
+})->middleware(['auth', 'verified'])->name('meal-planning.pantry.staples.store');
+
+Route::patch('/meal-planning/pantry/staples/{pantryStaple}', function (Request $request, PantryStaple $pantryStaple) {
+    if ((int) $pantryStaple->user_id !== (int) $request->user()->id) {
+        abort(403);
+    }
+
+    $validated = $request->validate([
+        'pantry_input' => ['nullable', 'string', 'max:5000'],
+        'is_in_stock' => ['required', 'boolean'],
+    ]);
+
+    $pantryStaple->update([
+        'is_in_stock' => (bool) $validated['is_in_stock'],
+    ]);
+
+    return redirect()->route('meal-planning.pantry', [
+        'pantry_input' => trim((string) ($validated['pantry_input'] ?? '')),
+    ]);
+})->middleware(['auth', 'verified'])->name('meal-planning.pantry.staples.update');
+
+Route::delete('/meal-planning/pantry/staples/{pantryStaple}', function (Request $request, PantryStaple $pantryStaple) {
+    if ((int) $pantryStaple->user_id !== (int) $request->user()->id) {
+        abort(403);
+    }
+
+    $validated = $request->validate([
+        'pantry_input' => ['nullable', 'string', 'max:5000'],
+    ]);
+
+    $pantryStaple->delete();
+
+    return redirect()->route('meal-planning.pantry', [
+        'pantry_input' => trim((string) ($validated['pantry_input'] ?? '')),
+    ]);
+})->middleware(['auth', 'verified'])->name('meal-planning.pantry.staples.destroy');
 
 Route::get('/meal-planning/previous', function (Request $request) {
     $plans = MealPlan::query()

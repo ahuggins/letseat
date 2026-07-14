@@ -20,6 +20,7 @@ export default function Authenticated({
         route().current("meal-planning") ||
         route().current("meal-planning.list") ||
         route().current("meal-planning.edit") ||
+        route().current("meal-planning.pantry") ||
         route().current("meal-planning.previous");
 
     function handleSearchSubmit(e: FormEvent<HTMLFormElement>) {
@@ -105,6 +106,21 @@ export default function Authenticated({
                                                 }
                                             >
                                                 Previous Plans
+                                            </Link>
+                                            <Link
+                                                href={route(
+                                                    "meal-planning.pantry",
+                                                )}
+                                                className={
+                                                    "block rounded-lg px-3 py-2 text-sm transition " +
+                                                    (route().current(
+                                                        "meal-planning.pantry",
+                                                    )
+                                                        ? "bg-red-50 text-red-700"
+                                                        : "text-zinc-700 hover:bg-red-50 hover:text-red-700")
+                                                }
+                                            >
+                                                Pantry Ideas
                                             </Link>
                                         </div>
                                     </div>
@@ -286,6 +302,12 @@ export default function Authenticated({
                                 )}
                             >
                                 Previous Plans
+                            </ResponsiveNavLink>
+                            <ResponsiveNavLink
+                                href={route("meal-planning.pantry")}
+                                active={route().current("meal-planning.pantry")}
+                            >
+                                Pantry Ideas
                             </ResponsiveNavLink>
                             <ResponsiveNavLink
                                 href={route("favorites")}
