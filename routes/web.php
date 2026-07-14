@@ -350,6 +350,8 @@ Route::get('/meal-planning/{mealPlan}/edit', function (Request $request, MealPla
             'week_start' => $mealPlan->week_start?->toDateString(),
             'week_end' => $mealPlan->week_end?->toDateString(),
             'created_at' => $mealPlan->created_at,
+            'checked_item_count' => count($mealPlan->checked_item_ids ?? []),
+            'pantry_item_count' => count($mealPlan->pantry_item_ids ?? []),
         ],
         'recipes' => $recipes,
         'selectedIds' => $selectedIds,
@@ -483,6 +485,24 @@ Route::middleware('auth')->group(function () {
 
         if ($selectedRecipes->isEmpty()) {
             return back(303);
+        }
+
+        $existingRecipeIds = $mealPlan->recipes()
+            ->pluck('recipe_id')
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->sort()
+            ->values();
+
+        $nextRecipeIds = $selectedIds
+            ->sort()
+            ->values();
+
+        $recipeSetChanged = $existingRecipeIds->all() !== $nextRecipeIds->all();
+
+        if (! $recipeSetChanged) {
+            return redirect()->route('meal-planning.list', $mealPlan->id);
         }
 
         DB::transaction(function () use ($mealPlan, $selectedRecipes) {

@@ -26,6 +26,8 @@ export default function MealPlanningEdit({
         week_start?: string | null;
         week_end?: string | null;
         created_at: string;
+        checked_item_count?: number;
+        pantry_item_count?: number;
     };
     recipes: PlannerRecipe[];
     selectedIds: number[];
@@ -39,6 +41,9 @@ export default function MealPlanningEdit({
     const searchInputRef = useRef<HTMLInputElement | null>(null);
 
     const selectedCount = selectedRecipeIds.length;
+    const hasChecklistProgress =
+        (mealPlan.checked_item_count ?? 0) > 0 ||
+        (mealPlan.pantry_item_count ?? 0) > 0;
     const weekLabel = useMemo(() => {
         return formatWeekRange(mealPlan.week_start, mealPlan.week_end);
     }, [mealPlan.week_start, mealPlan.week_end]);
@@ -101,6 +106,20 @@ export default function MealPlanningEdit({
             return;
         }
 
+        const recipeSetChanged =
+            normalizeIds(selectedRecipeIds).join(",") !==
+            normalizeIds(selectedIds).join(",");
+
+        if (recipeSetChanged && hasChecklistProgress) {
+            const shouldProceed = window.confirm(
+                "This plan has pantry/checklist progress. Saving recipe changes will reset that progress. Continue?",
+            );
+
+            if (!shouldProceed) {
+                return;
+            }
+        }
+
         router.patch(route("meal-planning.update", mealPlan.id), {
             selected_ids: selectedRecipeIds,
         });
@@ -135,6 +154,12 @@ export default function MealPlanningEdit({
                     </section>
 
                     <section className="sticky top-16 z-30 mb-6 flex flex-col gap-3 rounded-2xl border border-red-200 bg-white/95 p-4 shadow-sm backdrop-blur md:flex-row md:items-end md:justify-between">
+                        {hasChecklistProgress ? (
+                            <div className="w-full rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 md:order-last md:w-auto">
+                                Saving recipe changes resets pantry/checklist
+                                progress.
+                            </div>
+                        ) : null}
                         <div className="w-full max-w-xl">
                             <label
                                 htmlFor="meal-planning-edit-search"
@@ -267,6 +292,13 @@ export default function MealPlanningEdit({
             </div>
         </AuthenticatedLayout>
     );
+}
+
+function normalizeIds(ids: number[]): number[] {
+    return [...ids]
+        .map((id) => Number(id))
+        .filter((id) => id > 0)
+        .sort((a, b) => a - b);
 }
 
 function formatWeekRange(start?: string | null, end?: string | null): string {
