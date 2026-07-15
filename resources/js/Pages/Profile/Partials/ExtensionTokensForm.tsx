@@ -137,6 +137,26 @@ export default function ExtensionTokensForm({
                     Create a revokable token for the LetsEat Chrome extension.
                     Keep it private and revoke it anytime.
                 </p>
+                <div className="mt-3 rounded-xl border border-red-200 bg-red-50/50 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-red-700/80">
+                        Chrome Web Store
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-sm text-zinc-700">
+                            Install the official LetsEat extension.
+                        </p>
+                        <a
+                            href="https://chromewebstore.google.com/detail/letseat-add-recipes/mnpekohgobldjhmjicgikoecghlfhllh"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 rounded-full border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 hover:text-red-800"
+                            data-testid="profile-extension-tokens-webstore-link"
+                        >
+                            View extension
+                            <span aria-hidden="true">↗</span>
+                        </a>
+                    </div>
+                </div>
             </header>
 
             <div className="mt-6 space-y-4">
