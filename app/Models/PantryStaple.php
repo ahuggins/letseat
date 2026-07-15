@@ -14,4 +14,9 @@ class PantryStaple extends Model
     protected $casts = [
         'is_in_stock' => 'boolean',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

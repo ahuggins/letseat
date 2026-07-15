@@ -29,6 +29,7 @@ export default function NotesSharingForm({
 
         post(route("profile.note-shares.store"), {
             preserveScroll: true,
+            errorBag: "storeNoteShare",
             onSuccess: () => reset("email"),
         });
     };

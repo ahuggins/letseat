@@ -24,11 +24,17 @@ type PantryStaple = {
     is_in_stock: boolean;
 };
 
+type SharedPantryOwner = {
+    name?: string | null;
+    email?: string | null;
+};
+
 export default function MealPlanningPantry({
     auth,
     pantryInput,
     pantryItems,
     pantryStaples,
+    sharedPantryOwners,
     filters,
     filterOptions,
     suggestions,
@@ -37,6 +43,7 @@ export default function MealPlanningPantry({
     pantryInput: string;
     pantryItems: string[];
     pantryStaples: PantryStaple[];
+    sharedPantryOwners: SharedPantryOwner[];
     filters: {
         category?: string;
         cuisine?: string;
@@ -59,6 +66,10 @@ export default function MealPlanningPantry({
     const outOfStockStaples = pantryStaples.filter(
         (staple) => !staple.is_in_stock,
     );
+    const sharedByText = sharedPantryOwners
+        .map((owner) => owner.name ?? owner.email)
+        .filter(Boolean)
+        .join(", ");
 
     useEffect(() => {
         setInputValue(pantryInput ?? "");
@@ -215,8 +226,7 @@ export default function MealPlanningPantry({
                                 ))}
                             </div>
                             <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
-                                Plus your usual pantry ({inStockStaples.length}{" "}
-                                item
+                                Shared pantry ({inStockStaples.length} item
                                 {inStockStaples.length === 1 ? "" : "s"}
                                 {outOfStockStaples.length
                                     ? `, ${outOfStockStaples.length} out of stock`
@@ -506,11 +516,13 @@ export default function MealPlanningPantry({
                                 data-testid="meal-planning-pantry-staples"
                             >
                                 <h2 className="font-serif text-2xl font-semibold text-zinc-900">
-                                    Usually in your pantry
+                                    {sharedByText
+                                        ? `Shared pantry with ${sharedByText}`
+                                        : "Your pantry staples"}
                                 </h2>
                                 <p className="mt-1 text-sm text-zinc-600">
-                                    Save staples once and reuse them for future
-                                    suggestions.
+                                    Everyone in this pantry can mark items in
+                                    stock or out of stock.
                                 </p>
 
                                 {outOfStockStaples.length ? (

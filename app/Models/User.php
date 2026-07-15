@@ -83,4 +83,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(PrivateNoteShare::class, 'viewer_user_id');
     }
+
+    public function pantrySharesGiven()
+    {
+        return $this->hasMany(PantryShare::class, 'owner_user_id')->orderBy('created_at');
+    }
+
+    public function pantrySharesReceived()
+    {
+        return $this->hasMany(PantryShare::class, 'viewer_user_id')->orderBy('created_at');
+    }
 }

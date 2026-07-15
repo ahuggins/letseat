@@ -2,6 +2,7 @@ import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import DeleteUserForm from "./Partials/DeleteUserForm";
 import ExtensionTokensForm from "./Partials/ExtensionTokensForm";
 import NotesSharingForm from "./Partials/NotesSharingForm";
+import PantrySharingForm from "./Partials/PantrySharingForm";
 import UpdatePasswordForm from "./Partials/UpdatePasswordForm";
 import UpdateProfileInformationForm from "./Partials/UpdateProfileInformationForm";
 import { Head } from "@inertiajs/react";
@@ -12,6 +13,9 @@ export default function Edit({
     mustVerifyEmail,
     status,
     noteShares,
+    pantryShares,
+    pantryIncomingInvites,
+    pantrySharesReceived,
     extensionTokens,
 }: PageProps<{
     mustVerifyEmail: boolean;
@@ -21,6 +25,30 @@ export default function Edit({
         viewer_id: number;
         viewer_name: string;
         viewer_email: string;
+        created_at: string;
+    }>;
+    pantryShares: Array<{
+        id: number;
+        viewer_id: number;
+        viewer_name: string;
+        viewer_email: string;
+        status: "pending" | "accepted";
+        accepted_at: string | null;
+        created_at: string;
+    }>;
+    pantryIncomingInvites: Array<{
+        id: number;
+        owner_id: number;
+        owner_name: string;
+        owner_email: string;
+        created_at: string;
+    }>;
+    pantrySharesReceived: Array<{
+        id: number;
+        owner_id: number;
+        owner_name: string;
+        owner_email: string;
+        accepted_at: string | null;
         created_at: string;
     }>;
     extensionTokens: Array<{
@@ -60,6 +88,15 @@ export default function Edit({
                         <NotesSharingForm
                             className="max-w-xl"
                             noteShares={noteShares}
+                        />
+                    </div>
+
+                    <div className="rounded-2xl border border-red-200 bg-white p-4 shadow-sm sm:rounded-2xl sm:p-8">
+                        <PantrySharingForm
+                            className="max-w-xl"
+                            pantryShares={pantryShares}
+                            pantryIncomingInvites={pantryIncomingInvites}
+                            pantrySharesReceived={pantrySharesReceived}
                         />
                     </div>
 

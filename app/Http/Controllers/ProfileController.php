@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\PantryShare;
 use App\Models\PrivateNoteShare;
 use App\Models\User;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -33,6 +34,47 @@ class ProfileController extends Controller
                 'created_at' => $share->created_at,
             ]);
 
+        $pantryShares = $request->user()
+            ->pantrySharesGiven()
+            ->with('viewer:id,name,email')
+            ->get()
+            ->map(fn ($share) => [
+                'id' => $share->id,
+                'viewer_id' => $share->viewer_id,
+                'viewer_name' => $share->viewer?->name,
+                'viewer_email' => $share->viewer?->email,
+                'status' => $share->status,
+                'accepted_at' => $share->accepted_at,
+                'created_at' => $share->created_at,
+            ]);
+
+        $pantryIncomingInvites = $request->user()
+            ->pantrySharesReceived()
+            ->with('owner:id,name,email')
+            ->where('status', PantryShare::STATUS_PENDING)
+            ->get()
+            ->map(fn ($share) => [
+                'id' => $share->id,
+                'owner_id' => $share->owner_user_id,
+                'owner_name' => $share->owner?->name,
+                'owner_email' => $share->owner?->email,
+                'created_at' => $share->created_at,
+            ]);
+
+        $pantrySharesReceived = $request->user()
+            ->pantrySharesReceived()
+            ->with('owner:id,name,email')
+            ->where('status', PantryShare::STATUS_ACCEPTED)
+            ->get()
+            ->map(fn ($share) => [
+                'id' => $share->id,
+                'owner_id' => $share->owner_user_id,
+                'owner_name' => $share->owner?->name,
+                'owner_email' => $share->owner?->email,
+                'accepted_at' => $share->accepted_at,
+                'created_at' => $share->created_at,
+            ]);
+
         $extensionTokens = $request->user()
             ->tokens()
             ->where('name', 'like', 'chrome-extension:%')
@@ -51,6 +93,9 @@ class ProfileController extends Controller
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
             'noteShares' => $noteShares,
+            'pantryShares' => $pantryShares,
+            'pantryIncomingInvites' => $pantryIncomingInvites,
+            'pantrySharesReceived' => $pantrySharesReceived,
             'extensionTokens' => $extensionTokens,
         ]);
     }
@@ -103,13 +148,13 @@ class ProfileController extends Controller
         if (! $viewer) {
             return Redirect::route('profile.edit')->withErrors([
                 'email' => 'No user found with that email address.',
-            ]);
+            ], 'storeNoteShare');
         }
 
         if ((int) $viewer->id === (int) $request->user()->id) {
             return Redirect::route('profile.edit')->withErrors([
                 'email' => 'You already have access to your own notes.',
-            ]);
+            ], 'storeNoteShare');
         }
 
         PrivateNoteShare::firstOrCreate([
@@ -125,6 +170,107 @@ class ProfileController extends Controller
         PrivateNoteShare::query()
             ->where('owner_user_id', $request->user()->id)
             ->where('viewer_user_id', $viewer->id)
+            ->delete();
+
+        return Redirect::route('profile.edit');
+    }
+
+    public function storePantryShare(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        $viewer = User::query()->where('email', $validated['email'])->first();
+
+        if (! $viewer) {
+            return Redirect::route('profile.edit')->withErrors([
+                'email' => 'No user found with that email address.',
+            ], 'storePantryShare');
+        }
+
+        if ((int) $viewer->id === (int) $request->user()->id) {
+            return Redirect::route('profile.edit')->withErrors([
+                'email' => 'You already have access to your own pantry.',
+            ], 'storePantryShare');
+        }
+
+        $existingShare = PantryShare::query()
+            ->where('owner_user_id', $request->user()->id)
+            ->where('viewer_user_id', $viewer->id)
+            ->first();
+
+        if ($existingShare && $existingShare->status === PantryShare::STATUS_ACCEPTED) {
+            return Redirect::route('profile.edit');
+        }
+
+        $reverseShare = PantryShare::query()
+            ->where('owner_user_id', $viewer->id)
+            ->where('viewer_user_id', $request->user()->id)
+            ->first();
+
+        if ($reverseShare && $reverseShare->status === PantryShare::STATUS_ACCEPTED) {
+            return Redirect::route('profile.edit');
+        }
+
+        if ($reverseShare && $reverseShare->status === PantryShare::STATUS_PENDING) {
+            return Redirect::route('profile.edit')->withErrors([
+                'email' => 'This user already invited you. Accept their invite below.',
+            ], 'storePantryShare');
+        }
+
+        PantryShare::updateOrCreate([
+            'owner_user_id' => $request->user()->id,
+            'viewer_user_id' => $viewer->id,
+        ], [
+            'status' => PantryShare::STATUS_PENDING,
+            'accepted_at' => null,
+        ]);
+
+        return Redirect::route('profile.edit');
+    }
+
+    public function destroyPantryShare(Request $request, User $viewer): RedirectResponse
+    {
+        PantryShare::query()
+            ->where('owner_user_id', $request->user()->id)
+            ->where('viewer_user_id', $viewer->id)
+            ->delete();
+
+        return Redirect::route('profile.edit');
+    }
+
+    public function acceptPantryShare(Request $request, User $owner): RedirectResponse
+    {
+        PantryShare::query()
+            ->where('owner_user_id', $owner->id)
+            ->where('viewer_user_id', $request->user()->id)
+            ->where('status', PantryShare::STATUS_PENDING)
+            ->update([
+                'status' => PantryShare::STATUS_ACCEPTED,
+                'accepted_at' => now(),
+            ]);
+
+        return Redirect::route('profile.edit');
+    }
+
+    public function declinePantryShare(Request $request, User $owner): RedirectResponse
+    {
+        PantryShare::query()
+            ->where('owner_user_id', $owner->id)
+            ->where('viewer_user_id', $request->user()->id)
+            ->where('status', PantryShare::STATUS_PENDING)
+            ->delete();
+
+        return Redirect::route('profile.edit');
+    }
+
+    public function leavePantryShare(Request $request, User $owner): RedirectResponse
+    {
+        PantryShare::query()
+            ->where('owner_user_id', $owner->id)
+            ->where('viewer_user_id', $request->user()->id)
+            ->where('status', PantryShare::STATUS_ACCEPTED)
             ->delete();
 
         return Redirect::route('profile.edit');

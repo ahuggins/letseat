@@ -7,7 +7,9 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RecipeController;
 use App\Models\MealPlan;
 use App\Models\NewRecipe;
+use App\Models\PantryShare;
 use App\Models\PantryStaple;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -251,9 +253,32 @@ Route::get('/meal-planning', function (Request $request) {
     ]);
 })->middleware(['auth', 'verified'])->name('meal-planning');
 
-$renderPantryAssistantPage = function (Request $request, string $pantryInput = '') {
+$resolvePantryMemberIds = function (Request $request) {
+    $userId = (int) $request->user()->id;
+
+    $acceptedShares = PantryShare::query()
+        ->accepted()
+        ->where(function ($builder) use ($userId) {
+            $builder
+                ->where('owner_user_id', $userId)
+                ->orWhere('viewer_user_id', $userId);
+        })
+        ->get(['owner_user_id', 'viewer_user_id']);
+
+    return collect([$userId])
+        ->concat($acceptedShares->pluck('owner_user_id'))
+        ->concat($acceptedShares->pluck('viewer_user_id'))
+        ->map(fn ($id) => (int) $id)
+        ->filter(fn ($id) => $id > 0)
+        ->unique()
+        ->values();
+};
+
+$renderPantryAssistantPage = function (Request $request, string $pantryInput = '') use ($resolvePantryMemberIds) {
     $selectedCategory = trim((string) $request->query('category', ''));
     $selectedCuisine = trim((string) $request->query('cuisine', ''));
+    $pantryMemberIds = $resolvePantryMemberIds($request);
+    $viewerId = (int) $request->user()->id;
 
     $normalizeTerm = function (string $value): string {
         $value = strtolower($value);
@@ -273,15 +298,26 @@ $renderPantryAssistantPage = function (Request $request, string $pantryInput = '
         ->values();
 
     $pantryStaples = PantryStaple::query()
-        ->where('user_id', $request->user()->id)
+        ->whereIn('user_id', $pantryMemberIds)
         ->orderBy('name')
         ->get();
+
+    $sharedPantryOwners = User::query()
+        ->whereIn('id', $pantryMemberIds->reject(fn ($id) => (int) $id === $viewerId)->values()->all(), 'and', false)
+        ->orderBy('name', 'asc')
+        ->get(['name', 'email'])
+        ->map(fn ($user) => [
+            'name' => $user->name,
+            'email' => $user->email,
+        ])
+        ->values();
 
     $inStockStapleItems = $pantryStaples
         ->where('is_in_stock', true)
         ->pluck('name')
         ->map(fn ($item) => trim((string) $item))
         ->filter()
+        ->unique()
         ->values();
 
     $currentMealPlan = MealPlan::query()
@@ -444,6 +480,7 @@ $renderPantryAssistantPage = function (Request $request, string $pantryInput = '
                 'is_in_stock' => (bool) $staple->is_in_stock,
             ])
             ->values(),
+        'sharedPantryOwners' => $sharedPantryOwners,
         'shoppingListItems' => $pantryStaples
             ->where('is_in_stock', false)
             ->pluck('name')
@@ -542,7 +579,7 @@ Route::post('/meal-planning/pantry/add-to-meal-plan', function (Request $request
     ]);
 })->middleware(['auth', 'verified'])->name('meal-planning.pantry.add-to-meal-plan');
 
-Route::post('/meal-planning/pantry/staples', function (Request $request) {
+Route::post('/meal-planning/pantry/staples', function (Request $request) use ($resolvePantryMemberIds) {
     $validated = $request->validate([
         'pantry_input' => ['nullable', 'string', 'max:5000'],
         'filter_category' => ['nullable', 'string', 'max:120'],
@@ -551,10 +588,11 @@ Route::post('/meal-planning/pantry/staples', function (Request $request) {
     ]);
 
     $name = trim((string) $validated['staple_name']);
+    $pantryMemberIds = $resolvePantryMemberIds($request);
 
     if ($name !== '') {
         $existingStaple = PantryStaple::query()
-            ->where('user_id', $request->user()->id)
+            ->whereIn('user_id', $pantryMemberIds)
             ->whereRaw('lower(name) = ?', [mb_strtolower($name)])
             ->first();
 
@@ -578,8 +616,10 @@ Route::post('/meal-planning/pantry/staples', function (Request $request) {
     ]);
 })->middleware(['auth', 'verified'])->name('meal-planning.pantry.staples.store');
 
-Route::patch('/meal-planning/pantry/staples/{pantryStaple}', function (Request $request, PantryStaple $pantryStaple) {
-    if ((int) $pantryStaple->user_id !== (int) $request->user()->id) {
+Route::patch('/meal-planning/pantry/staples/{pantryStaple}', function (Request $request, PantryStaple $pantryStaple) use ($resolvePantryMemberIds) {
+    $pantryMemberIds = $resolvePantryMemberIds($request);
+
+    if (! $pantryMemberIds->contains((int) $pantryStaple->user_id)) {
         abort(403);
     }
 
@@ -601,8 +641,10 @@ Route::patch('/meal-planning/pantry/staples/{pantryStaple}', function (Request $
     ]);
 })->middleware(['auth', 'verified'])->name('meal-planning.pantry.staples.update');
 
-Route::delete('/meal-planning/pantry/staples/{pantryStaple}', function (Request $request, PantryStaple $pantryStaple) {
-    if ((int) $pantryStaple->user_id !== (int) $request->user()->id) {
+Route::delete('/meal-planning/pantry/staples/{pantryStaple}', function (Request $request, PantryStaple $pantryStaple) use ($resolvePantryMemberIds) {
+    $pantryMemberIds = $resolvePantryMemberIds($request);
+
+    if (! $pantryMemberIds->contains((int) $pantryStaple->user_id)) {
         abort(403);
     }
 
@@ -770,6 +812,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::post('/profile/note-shares', [ProfileController::class, 'storeNoteShare'])->name('profile.note-shares.store');
     Route::delete('/profile/note-shares/{viewer}', [ProfileController::class, 'destroyNoteShare'])->name('profile.note-shares.destroy');
+    Route::post('/profile/pantry-shares', [ProfileController::class, 'storePantryShare'])->name('profile.pantry-shares.store');
+    Route::delete('/profile/pantry-shares/{viewer}', [ProfileController::class, 'destroyPantryShare'])->name('profile.pantry-shares.destroy');
+    Route::patch('/profile/pantry-shares/{owner}/accept', [ProfileController::class, 'acceptPantryShare'])->name('profile.pantry-shares.accept');
+    Route::delete('/profile/pantry-shares/{owner}/decline', [ProfileController::class, 'declinePantryShare'])->name('profile.pantry-shares.decline');
+    Route::delete('/profile/pantry-shares/{owner}/leave', [ProfileController::class, 'leavePantryShare'])->name('profile.pantry-shares.leave');
     Route::get('/profile/extension-tokens', [ExtensionTokenController::class, 'index'])
         ->middleware('throttle:20,1')
         ->name('profile.extension-tokens.index');
