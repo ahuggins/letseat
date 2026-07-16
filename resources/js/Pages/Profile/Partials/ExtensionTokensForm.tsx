@@ -173,17 +173,19 @@ export default function ExtensionTokensForm({
 
                     <div className="mt-4 space-y-4">
                         <div>
-                    <InputLabel
-                        htmlFor="extension_token_label"
-                        value="Token label (optional)"
-                    />
-                    <TextInput
-                        id="extension_token_label"
-                        className="mt-1 block w-full rounded-xl border-red-200 bg-red-50 text-zinc-900 placeholder:text-zinc-500 focus:border-red-400 focus:ring-red-200"
-                        value={tokenLabel}
-                        onChange={(event) => setTokenLabel(event.target.value)}
-                        placeholder="Chrome on MacBook"
-                    />
+                            <InputLabel
+                                htmlFor="extension_token_label"
+                                value="Token label (optional)"
+                            />
+                            <TextInput
+                                id="extension_token_label"
+                                className="mt-1 block w-full rounded-xl border-red-200 bg-red-50 text-zinc-900 placeholder:text-zinc-500 focus:border-red-400 focus:ring-red-200"
+                                value={tokenLabel}
+                                onChange={(event) =>
+                                    setTokenLabel(event.target.value)
+                                }
+                                placeholder="Chrome on MacBook"
+                            />
                         </div>
 
                         <div className="flex items-center gap-3">
@@ -273,7 +275,8 @@ export default function ExtensionTokensForm({
                                             {shortName(token.name)}
                                         </p>
                                         <p className="truncate text-xs text-zinc-600">
-                                            Created: {formatDate(token.created_at)}
+                                            Created:{" "}
+                                            {formatDate(token.created_at)}
                                         </p>
                                         <p className="truncate text-xs text-zinc-600">
                                             Last used:{" "}
