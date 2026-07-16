@@ -70,6 +70,12 @@ export default function Recipes({
         return () => window.clearTimeout(timeout);
     }, [searchQuery]);
 
+    function handleSearchChange(nextValue: string) {
+        // Prevent late responses from older visits from clobbering active input.
+        router.cancel();
+        setSearchQuery(nextValue);
+    }
+
     function visitWithFilters(
         nextQuery: string,
         nextCategory: string,
@@ -148,7 +154,7 @@ export default function Recipes({
                                     type="search"
                                     value={searchQuery}
                                     onChange={(e) =>
-                                        setSearchQuery(e.target.value)
+                                        handleSearchChange(e.target.value)
                                     }
                                     data-testid="recipes-search-input"
                                     placeholder="Search recipes..."
