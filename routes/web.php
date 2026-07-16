@@ -343,15 +343,28 @@ $renderPantryAssistantPage = function (Request $request, string $pantryInput = '
             ->values()
         : collect();
 
-    $allAvailableItems = $pantryItems
-        ->concat($inStockStapleItems)
-        ->map(fn ($item) => trim((string) $item))
+    $normalizedManualPantryItems = $pantryItems
+        ->map(fn ($item) => $normalizeTerm($item))
         ->filter()
         ->unique()
         ->values();
 
-    $normalizedPantryItems = $allAvailableItems
+    $normalizedStaplePantryItems = $inStockStapleItems
         ->map(fn ($item) => $normalizeTerm($item))
+        ->filter()
+        ->unique()
+        ->values();
+
+    $normalizedPantryItems = $normalizedManualPantryItems
+        ->concat($normalizedStaplePantryItems)
+        ->unique()
+        ->values();
+
+    $hasManualPantryInput = $normalizedManualPantryItems->isNotEmpty();
+
+    $allAvailableItems = $pantryItems
+        ->concat($inStockStapleItems)
+        ->map(fn ($item) => trim((string) $item))
         ->filter()
         ->unique()
         ->values();
@@ -377,6 +390,14 @@ $renderPantryAssistantPage = function (Request $request, string $pantryInput = '
     if ($normalizedPantryItems->isNotEmpty()) {
         $recipeQuery = NewRecipe::query();
 
+        if ($hasManualPantryInput) {
+            $recipeQuery->where(function ($builder) use ($normalizedManualPantryItems) {
+                foreach ($normalizedManualPantryItems as $manualItem) {
+                    $builder->orWhereRaw('lower(ingredients) like ?', ['%'.$manualItem.'%']);
+                }
+            });
+        }
+
         if ($selectedCategory !== '') {
             $recipeQuery->where('category', $selectedCategory);
         }
@@ -389,7 +410,12 @@ $renderPantryAssistantPage = function (Request $request, string $pantryInput = '
             ->orderByDesc('created_at')
             ->limit(350)
             ->get()
-            ->map(function (NewRecipe $recipe) use ($normalizeTerm, $normalizedPantryItems, $currentMealPlanRecipeIds) {
+            ->map(function (NewRecipe $recipe) use (
+                $normalizeTerm,
+                $normalizedPantryItems,
+                $normalizedManualPantryItems,
+                $currentMealPlanRecipeIds
+            ) {
                 $ingredients = collect(is_array($recipe->ingredients) ? $recipe->ingredients : [])
                     ->map(fn ($item) => trim(html_entity_decode((string) $item, ENT_QUOTES | ENT_HTML5, 'UTF-8')))
                     ->filter()
@@ -400,51 +426,68 @@ $renderPantryAssistantPage = function (Request $request, string $pantryInput = '
                     ->filter()
                     ->values();
 
-                $matchedIngredients = $ingredients
-                    ->filter(function ($ingredient, $index) use ($normalizedIngredients, $normalizedPantryItems) {
-                        $normalizedIngredient = (string) ($normalizedIngredients->get($index) ?? '');
-
+                $ingredientMatchMetadata = $normalizedIngredients
+                    ->map(function ($normalizedIngredient) use ($normalizedManualPantryItems, $normalizedPantryItems) {
                         if ($normalizedIngredient === '') {
-                            return false;
+                            return [
+                                'matches_any' => false,
+                                'matches_manual' => false,
+                            ];
                         }
 
+                        $matchesAny = false;
                         foreach ($normalizedPantryItems as $pantryItem) {
                             if (
                                 str_contains($normalizedIngredient, $pantryItem)
                                 || str_contains((string) $pantryItem, $normalizedIngredient)
                             ) {
-                                return true;
+                                $matchesAny = true;
+                                break;
                             }
                         }
 
-                        return false;
+                        $matchesManual = false;
+                        foreach ($normalizedManualPantryItems as $manualItem) {
+                            if (
+                                str_contains($normalizedIngredient, $manualItem)
+                                || str_contains((string) $manualItem, $normalizedIngredient)
+                            ) {
+                                $matchesManual = true;
+                                break;
+                            }
+                        }
+
+                        return [
+                            'matches_any' => $matchesAny,
+                            'matches_manual' => $matchesManual,
+                        ];
+                    })
+                    ->values();
+
+                $matchedIngredients = $ingredients
+                    ->filter(function ($ingredient, $index) use ($ingredientMatchMetadata) {
+                        $metadata = $ingredientMatchMetadata->get($index);
+
+                        return (bool) ($metadata['matches_any'] ?? false);
                     })
                     ->values();
 
                 $missingIngredients = $ingredients
-                    ->filter(function ($ingredient, $index) use ($normalizedIngredients, $normalizedPantryItems) {
-                        $normalizedIngredient = (string) ($normalizedIngredients->get($index) ?? '');
+                    ->filter(function ($ingredient, $index) use ($ingredientMatchMetadata) {
+                        $metadata = $ingredientMatchMetadata->get($index);
 
-                        if ($normalizedIngredient === '') {
-                            return false;
-                        }
-
-                        foreach ($normalizedPantryItems as $pantryItem) {
-                            if (
-                                str_contains($normalizedIngredient, $pantryItem)
-                                || str_contains((string) $pantryItem, $normalizedIngredient)
-                            ) {
-                                return false;
-                            }
-                        }
-
-                        return true;
+                        return ! (bool) ($metadata['matches_any'] ?? false);
                     })
                     ->values();
 
                 $totalIngredients = $ingredients->count();
                 $matchedCount = $matchedIngredients->count();
                 $missingCount = max($totalIngredients - $matchedCount, 0);
+
+                $manualMatchedCount = $ingredientMatchMetadata
+                    ->filter(fn ($metadata) => (bool) ($metadata['matches_manual'] ?? false))
+                    ->count();
+
                 $score = $totalIngredients > 0 ? $matchedCount / $totalIngredients : 0;
 
                 return [
@@ -455,6 +498,7 @@ $renderPantryAssistantPage = function (Request $request, string $pantryInput = '
                     'image' => $recipe->image,
                     'description' => $recipe->description,
                     'matched_count' => $matchedCount,
+                    'manual_matched_count' => $manualMatchedCount,
                     'total_ingredients' => $totalIngredients,
                     'missing_count' => $missingCount,
                     'match_percent' => (int) round($score * 100),
@@ -464,9 +508,17 @@ $renderPantryAssistantPage = function (Request $request, string $pantryInput = '
                     'score' => $score,
                 ];
             })
-            ->filter(fn ($item) => $item['matched_count'] > 0)
+            ->filter(function ($item) use ($hasManualPantryInput) {
+                if ($hasManualPantryInput) {
+                    return ((int) ($item['manual_matched_count'] ?? 0)) > 0;
+                }
+
+                return ((int) ($item['matched_count'] ?? 0)) > 0;
+            })
             ->sortBy([
                 ['match_percent', 'desc'],
+                ['score', 'desc'],
+                ['manual_matched_count', 'desc'],
                 ['matched_count', 'desc'],
                 ['total_ingredients', 'asc'],
             ])
