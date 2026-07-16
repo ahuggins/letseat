@@ -134,14 +134,19 @@ export default function ExtensionTokensForm({
                     Chrome Extension Tokens
                 </h2>
                 <p className="mt-1 text-sm text-zinc-600">
-                    Create a revokable token for the LetsEat Chrome extension.
-                    Keep it private and revoke it anytime.
+                    Set up the extension in three quick steps.
                 </p>
-                <div className="mt-3 rounded-xl border border-red-200 bg-red-50/50 p-3">
+            </header>
+
+            <div className="mt-6 space-y-6">
+                <section className="rounded-xl border border-red-200 bg-red-50/60 p-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-red-700/80">
-                        Chrome Web Store
+                        Step 1
                     </p>
-                    <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+                    <h3 className="mt-1 text-sm font-semibold text-zinc-900">
+                        Install Chrome Extension
+                    </h3>
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                         <p className="text-sm text-zinc-700">
                             Install the official LetsEat extension.
                         </p>
@@ -156,11 +161,18 @@ export default function ExtensionTokensForm({
                             <span aria-hidden="true">↗</span>
                         </a>
                     </div>
-                </div>
-            </header>
+                </section>
 
-            <div className="mt-6 space-y-4">
-                <div>
+                <section className="rounded-xl border border-red-200 bg-white p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-red-700/80">
+                        Step 2
+                    </p>
+                    <h3 className="mt-1 text-sm font-semibold text-zinc-900">
+                        Create a Token
+                    </h3>
+
+                    <div className="mt-4 space-y-4">
+                        <div>
                     <InputLabel
                         htmlFor="extension_token_label"
                         value="Token label (optional)"
@@ -172,110 +184,125 @@ export default function ExtensionTokensForm({
                         onChange={(event) => setTokenLabel(event.target.value)}
                         placeholder="Chrome on MacBook"
                     />
-                </div>
-
-                <div className="flex items-center gap-3">
-                    <PrimaryButton
-                        type="button"
-                        onClick={createToken}
-                        disabled={creating}
-                        className="rounded-full bg-red-500 px-5 py-2 text-white hover:bg-red-600 focus:bg-red-600 active:bg-red-700 focus:ring-red-300"
-                        data-testid="profile-extension-tokens-create"
-                    >
-                        {creating ? "Creating..." : "Create Token"}
-                    </PrimaryButton>
-                </div>
-
-                {newToken ? (
-                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-                        <p className="text-xs font-medium uppercase tracking-wide text-emerald-800">
-                            Copy this token now
-                        </p>
-                        <p className="mt-1 break-all rounded-lg border border-emerald-200 bg-white p-2 text-sm text-zinc-800">
-                            {newToken}
-                        </p>
-                        <div className="mt-3 flex items-center gap-3">
-                            <SecondaryButton
-                                type="button"
-                                onClick={copyToken}
-                                className="rounded-full border border-emerald-200 px-4 py-2 text-xs normal-case tracking-normal text-emerald-800"
-                                data-testid="profile-extension-tokens-copy"
-                            >
-                                Copy Token
-                            </SecondaryButton>
-                            <SecondaryButton
-                                type="button"
-                                onClick={() => setNewToken("")}
-                                className="rounded-full border border-zinc-200 px-4 py-2 text-xs normal-case tracking-normal text-zinc-700"
-                            >
-                                Hide
-                            </SecondaryButton>
                         </div>
-                    </div>
-                ) : null}
 
-                {status ? (
-                    <p
-                        className={`text-sm ${
-                            statusTone === "error"
-                                ? "text-amber-700"
-                                : statusTone === "success"
-                                  ? "text-emerald-700"
-                                  : "text-zinc-600"
-                        }`}
-                        data-testid="profile-extension-tokens-status"
-                    >
-                        {status}
-                    </p>
-                ) : null}
-            </div>
-
-            <div className="mt-6">
-                {hasTokens ? (
-                    <ul
-                        className="space-y-2"
-                        data-testid="profile-extension-tokens-list"
-                    >
-                        {tokens.map((token) => (
-                            <li
-                                key={token.id}
-                                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50/50 px-3 py-3"
-                                data-testid={`profile-extension-token-item-${token.id}`}
+                        <div className="flex items-center gap-3">
+                            <PrimaryButton
+                                type="button"
+                                onClick={createToken}
+                                disabled={creating}
+                                className="rounded-full bg-red-500 px-5 py-2 text-white hover:bg-red-600 focus:bg-red-600 active:bg-red-700 focus:ring-red-300"
+                                data-testid="profile-extension-tokens-create"
                             >
-                                <div className="min-w-0">
-                                    <p className="truncate text-sm font-medium text-zinc-800">
-                                        {shortName(token.name)}
-                                    </p>
-                                    <p className="truncate text-xs text-zinc-600">
-                                        Created: {formatDate(token.created_at)}
-                                    </p>
-                                    <p className="truncate text-xs text-zinc-600">
-                                        Last used:{" "}
-                                        {formatDate(token.last_used_at)}
-                                    </p>
+                                {creating ? "Creating..." : "Create Token"}
+                            </PrimaryButton>
+                        </div>
+
+                        {newToken ? (
+                            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                                <p className="text-xs font-medium uppercase tracking-wide text-emerald-800">
+                                    Copy this token now
+                                </p>
+                                <p className="mt-1 break-all rounded-lg border border-emerald-200 bg-white p-2 text-sm text-zinc-800">
+                                    {newToken}
+                                </p>
+                                <div className="mt-3 flex items-center gap-3">
+                                    <SecondaryButton
+                                        type="button"
+                                        onClick={copyToken}
+                                        className="rounded-full border border-emerald-200 px-4 py-2 text-xs normal-case tracking-normal text-emerald-800"
+                                        data-testid="profile-extension-tokens-copy"
+                                    >
+                                        Copy Token
+                                    </SecondaryButton>
+                                    <SecondaryButton
+                                        type="button"
+                                        onClick={() => setNewToken("")}
+                                        className="rounded-full border border-zinc-200 px-4 py-2 text-xs normal-case tracking-normal text-zinc-700"
+                                    >
+                                        Hide
+                                    </SecondaryButton>
                                 </div>
-                                <DangerButton
-                                    type="button"
-                                    onClick={() => revokeToken(token.id)}
-                                    disabled={revokingId === token.id}
-                                    className="rounded-full px-4 py-2 text-xs normal-case tracking-normal"
-                                    data-testid={`profile-extension-token-revoke-${token.id}`}
-                                >
-                                    {revokingId === token.id
-                                        ? "Revoking..."
-                                        : "Revoke"}
-                                </DangerButton>
-                            </li>
-                        ))}
-                    </ul>
-                ) : (
-                    <p
-                        className="text-sm text-zinc-500"
-                        data-testid="profile-extension-tokens-empty"
-                    >
-                        No extension tokens yet.
+                            </div>
+                        ) : null}
+
+                        {status ? (
+                            <p
+                                className={`text-sm ${
+                                    statusTone === "error"
+                                        ? "text-amber-700"
+                                        : statusTone === "success"
+                                          ? "text-emerald-700"
+                                          : "text-zinc-600"
+                                }`}
+                                data-testid="profile-extension-tokens-status"
+                            >
+                                {status}
+                            </p>
+                        ) : null}
+                    </div>
+                </section>
+
+                <section className="rounded-xl border border-red-200 bg-red-50/60 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-red-700/80">
+                        Step 3
                     </p>
-                )}
+                    <h3 className="mt-1 text-sm font-semibold text-zinc-900">
+                        Copy the token and paste it in the Chrome Extension
+                    </h3>
+                    <p className="mt-2 text-sm text-zinc-700">
+                        Open the extension options, paste your token, and save.
+                        If a token is exposed, revoke it and generate a new one.
+                    </p>
+                </section>
+
+                <div>
+                    {hasTokens ? (
+                        <ul
+                            className="space-y-2"
+                            data-testid="profile-extension-tokens-list"
+                        >
+                            {tokens.map((token) => (
+                                <li
+                                    key={token.id}
+                                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50/50 px-3 py-3"
+                                    data-testid={`profile-extension-token-item-${token.id}`}
+                                >
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm font-medium text-zinc-800">
+                                            {shortName(token.name)}
+                                        </p>
+                                        <p className="truncate text-xs text-zinc-600">
+                                            Created: {formatDate(token.created_at)}
+                                        </p>
+                                        <p className="truncate text-xs text-zinc-600">
+                                            Last used:{" "}
+                                            {formatDate(token.last_used_at)}
+                                        </p>
+                                    </div>
+                                    <DangerButton
+                                        type="button"
+                                        onClick={() => revokeToken(token.id)}
+                                        disabled={revokingId === token.id}
+                                        className="rounded-full px-4 py-2 text-xs normal-case tracking-normal"
+                                        data-testid={`profile-extension-token-revoke-${token.id}`}
+                                    >
+                                        {revokingId === token.id
+                                            ? "Revoking..."
+                                            : "Revoke"}
+                                    </DangerButton>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p
+                            className="text-sm text-zinc-500"
+                            data-testid="profile-extension-tokens-empty"
+                        >
+                            No extension tokens yet.
+                        </p>
+                    )}
+                </div>
             </div>
         </section>
     );
