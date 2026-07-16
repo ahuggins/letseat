@@ -60,9 +60,8 @@ export default function Recipe({
             }
 
             try {
-                const sentinel = await wakeLockNavigator.wakeLock.request(
-                    "screen",
-                );
+                const sentinel =
+                    await wakeLockNavigator.wakeLock.request("screen");
 
                 if (cancelled) {
                     await sentinel.release();
@@ -93,7 +92,10 @@ export default function Recipe({
 
         if (isCookModeEnabled) {
             requestWakeLock();
-            document.addEventListener("visibilitychange", handleVisibilityChange);
+            document.addEventListener(
+                "visibilitychange",
+                handleVisibilityChange,
+            );
         } else {
             setCookModeMessage("");
             releaseWakeLock();
@@ -101,7 +103,10 @@ export default function Recipe({
 
         return () => {
             cancelled = true;
-            document.removeEventListener("visibilitychange", handleVisibilityChange);
+            document.removeEventListener(
+                "visibilitychange",
+                handleVisibilityChange,
+            );
             releaseWakeLock();
         };
     }, [isCookModeEnabled]);
