@@ -197,7 +197,7 @@ export default function AddRecipe({
                 className="bg-white py-6 sm:py-10"
                 data-testid="add-recipe-page"
             >
-                <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <section
                         className="mb-6 rounded-3xl border border-red-200 bg-gradient-to-br from-red-100 via-rose-50 to-zinc-50 p-8 shadow-sm sm:p-10"
                         data-testid="add-recipe-hero"

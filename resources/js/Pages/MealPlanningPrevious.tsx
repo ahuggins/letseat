@@ -42,7 +42,7 @@ export default function MealPlanningPrevious({
             <Head title="Previous Meal Plans" />
 
             <div className="bg-white py-6 sm:py-10">
-                <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <section className="mb-8 rounded-3xl border border-red-200 bg-gradient-to-br from-red-100 via-rose-50 to-zinc-50 p-8 shadow-sm sm:p-10">
                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-red-700/80">
                             Meal Planning
