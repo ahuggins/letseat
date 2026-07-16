@@ -113,7 +113,10 @@ export default function Recipe({
     }, [isCookModeEnabled]);
 
     function toggleMade() {
-        const url = route(isMade ? "recipes.unmade" : "recipes.made", recipe.id);
+        const url = route(
+            isMade ? "recipes.unmade" : "recipes.made",
+            recipe.id,
+        );
 
         if (isMade) {
             router.delete(url, {
@@ -175,7 +178,9 @@ export default function Recipe({
                                         : "border-zinc-200 bg-white/95 text-zinc-600 hover:bg-zinc-100")
                                 }
                             >
-                                <span className="text-base leading-none">✓</span>
+                                <span className="text-base leading-none">
+                                    ✓
+                                </span>
                                 Made this
                             </button>
 
