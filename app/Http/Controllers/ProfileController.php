@@ -28,9 +28,40 @@ class ProfileController extends Controller
             ->get()
             ->map(fn ($share) => [
                 'id' => $share->id,
-                'viewer_id' => $share->viewer_id,
+                'viewer_id' => $share->viewer_user_id,
                 'viewer_name' => $share->viewer?->name,
                 'viewer_email' => $share->viewer?->email,
+                'status' => $share->status,
+                'accepted_at' => $share->accepted_at,
+                'created_at' => $share->created_at,
+            ]);
+
+        $noteIncomingInvites = $request->user()
+            ->noteSharesReceived()
+            ->with('owner:id,name,email')
+            ->where('status', PrivateNoteShare::STATUS_PENDING)
+            ->orderBy('created_at')
+            ->get()
+            ->map(fn ($share) => [
+                'id' => $share->id,
+                'owner_id' => $share->owner_user_id,
+                'owner_name' => $share->owner?->name,
+                'owner_email' => $share->owner?->email,
+                'created_at' => $share->created_at,
+            ]);
+
+        $noteSharesReceived = $request->user()
+            ->noteSharesReceived()
+            ->with('owner:id,name,email')
+            ->where('status', PrivateNoteShare::STATUS_ACCEPTED)
+            ->orderBy('created_at')
+            ->get()
+            ->map(fn ($share) => [
+                'id' => $share->id,
+                'owner_id' => $share->owner_user_id,
+                'owner_name' => $share->owner?->name,
+                'owner_email' => $share->owner?->email,
+                'accepted_at' => $share->accepted_at,
                 'created_at' => $share->created_at,
             ]);
 
@@ -93,6 +124,8 @@ class ProfileController extends Controller
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
             'noteShares' => $noteShares,
+            'noteIncomingInvites' => $noteIncomingInvites,
+            'noteSharesReceived' => $noteSharesReceived,
             'pantryShares' => $pantryShares,
             'pantryIncomingInvites' => $pantryIncomingInvites,
             'pantrySharesReceived' => $pantrySharesReceived,
@@ -157,9 +190,36 @@ class ProfileController extends Controller
             ], 'storeNoteShare');
         }
 
-        PrivateNoteShare::firstOrCreate([
+        $existingShare = PrivateNoteShare::query()
+            ->where('owner_user_id', $request->user()->id)
+            ->where('viewer_user_id', $viewer->id)
+            ->first();
+
+        if ($existingShare && $existingShare->status === PrivateNoteShare::STATUS_ACCEPTED) {
+            return Redirect::route('profile.edit');
+        }
+
+        $reverseShare = PrivateNoteShare::query()
+            ->where('owner_user_id', $viewer->id)
+            ->where('viewer_user_id', $request->user()->id)
+            ->first();
+
+        if ($reverseShare && $reverseShare->status === PrivateNoteShare::STATUS_ACCEPTED) {
+            return Redirect::route('profile.edit');
+        }
+
+        if ($reverseShare && $reverseShare->status === PrivateNoteShare::STATUS_PENDING) {
+            return Redirect::route('profile.edit')->withErrors([
+                'email' => 'This user already invited you to share notes. Accept their invite below.',
+            ], 'storeNoteShare');
+        }
+
+        PrivateNoteShare::updateOrCreate([
             'owner_user_id' => $request->user()->id,
             'viewer_user_id' => $viewer->id,
+        ], [
+            'status' => PrivateNoteShare::STATUS_PENDING,
+            'accepted_at' => null,
         ]);
 
         return Redirect::route('profile.edit');
@@ -170,6 +230,42 @@ class ProfileController extends Controller
         PrivateNoteShare::query()
             ->where('owner_user_id', $request->user()->id)
             ->where('viewer_user_id', $viewer->id)
+            ->delete();
+
+        return Redirect::route('profile.edit');
+    }
+
+    public function acceptNoteShare(Request $request, User $owner): RedirectResponse
+    {
+        PrivateNoteShare::query()
+            ->where('owner_user_id', $owner->id)
+            ->where('viewer_user_id', $request->user()->id)
+            ->where('status', PrivateNoteShare::STATUS_PENDING)
+            ->update([
+                'status' => PrivateNoteShare::STATUS_ACCEPTED,
+                'accepted_at' => now(),
+            ]);
+
+        return Redirect::route('profile.edit');
+    }
+
+    public function declineNoteShare(Request $request, User $owner): RedirectResponse
+    {
+        PrivateNoteShare::query()
+            ->where('owner_user_id', $owner->id)
+            ->where('viewer_user_id', $request->user()->id)
+            ->where('status', PrivateNoteShare::STATUS_PENDING)
+            ->delete();
+
+        return Redirect::route('profile.edit');
+    }
+
+    public function leaveNoteShare(Request $request, User $owner): RedirectResponse
+    {
+        PrivateNoteShare::query()
+            ->where('owner_user_id', $owner->id)
+            ->where('viewer_user_id', $request->user()->id)
+            ->where('status', PrivateNoteShare::STATUS_ACCEPTED)
             ->delete();
 
         return Redirect::route('profile.edit');

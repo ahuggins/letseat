@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\NewRecipe;
+use App\Models\PrivateNoteShare;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -41,10 +42,14 @@ class RecipeBrowseController extends Controller
             ->orderBy('created_at')
             ->get();
 
-        $isSharingNotes = $request->user()->noteSharesGiven()->exists();
+        $isSharingNotes = $request->user()
+            ->noteSharesGiven()
+            ->where('status', PrivateNoteShare::STATUS_ACCEPTED)
+            ->exists();
 
         $sharedOwnerIds = $request->user()
             ->noteSharesReceived()
+            ->where('status', PrivateNoteShare::STATUS_ACCEPTED)
             ->pluck('owner_user_id');
 
         $sharedNotes = $recipe->privateNotes()

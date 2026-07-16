@@ -10,15 +10,38 @@ type NoteShare = {
     viewer_id: number;
     viewer_name: string;
     viewer_email: string;
+    status: "pending" | "accepted";
+    accepted_at: string | null;
+    created_at: string;
+};
+
+type NoteIncomingInvite = {
+    id: number;
+    owner_id: number;
+    owner_name: string;
+    owner_email: string;
+    created_at: string;
+};
+
+type NoteShareReceived = {
+    id: number;
+    owner_id: number;
+    owner_name: string;
+    owner_email: string;
+    accepted_at: string | null;
     created_at: string;
 };
 
 export default function NotesSharingForm({
     className = "",
     noteShares,
+    noteIncomingInvites,
+    noteSharesReceived,
 }: {
     className?: string;
     noteShares: NoteShare[];
+    noteIncomingInvites: NoteIncomingInvite[];
+    noteSharesReceived: NoteShareReceived[];
 }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         email: "",
@@ -40,6 +63,31 @@ export default function NotesSharingForm({
         });
     }
 
+    function acceptInvite(ownerId: number) {
+        router.patch(route("profile.note-shares.accept", ownerId), undefined, {
+            preserveScroll: true,
+        });
+    }
+
+    function declineInvite(ownerId: number) {
+        router.delete(route("profile.note-shares.decline", ownerId), {
+            preserveScroll: true,
+        });
+    }
+
+    function leaveSharedNotes(ownerId: number) {
+        router.delete(route("profile.note-shares.leave", ownerId), {
+            preserveScroll: true,
+        });
+    }
+
+    const pendingOutgoing = noteShares.filter(
+        (share) => share.status === "pending",
+    );
+    const acceptedOutgoing = noteShares.filter(
+        (share) => share.status === "accepted",
+    );
+
     return (
         <section
             className={className}
@@ -51,8 +99,8 @@ export default function NotesSharingForm({
                 </h2>
 
                 <p className="mt-1 text-sm text-zinc-600">
-                    Enter an email to share all of your recipe notes with that
-                    user.
+                    Send a notes invite. They must accept before your private
+                    notes are shared.
                 </p>
             </header>
 
@@ -94,44 +142,169 @@ export default function NotesSharingForm({
                 className="mt-6"
                 data-testid="profile-notes-sharing-list-wrapper"
             >
-                {noteShares.length ? (
-                    <ul
-                        className="space-y-2"
-                        data-testid="profile-notes-sharing-list"
-                    >
-                        {noteShares.map((share) => (
-                            <li
-                                key={share.id}
-                                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50/50 px-3 py-2"
-                                data-testid={`profile-notes-sharing-item-${share.viewer_id}`}
-                            >
-                                <div className="min-w-0">
-                                    <p className="truncate text-sm font-medium text-zinc-800">
-                                        {share.viewer_name}
-                                    </p>
-                                    <p className="truncate text-xs text-zinc-600">
-                                        {share.viewer_email}
-                                    </p>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => removeShare(share.viewer_id)}
-                                    className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-medium text-red-700 transition-colors hover:bg-red-100"
-                                    data-testid={`profile-notes-sharing-remove-${share.viewer_id}`}
+                {noteIncomingInvites.length ? (
+                    <div className="mb-6">
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-red-700/80">
+                            Pending invites for you
+                        </p>
+                        <ul className="space-y-2">
+                            {noteIncomingInvites.map((invite) => (
+                                <li
+                                    key={invite.id}
+                                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50/50 px-3 py-2"
                                 >
-                                    Stop sharing
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
-                ) : (
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm font-medium text-zinc-800">
+                                            {invite.owner_name}
+                                        </p>
+                                        <p className="truncate text-xs text-zinc-600">
+                                            {invite.owner_email}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                acceptInvite(invite.owner_id)
+                                            }
+                                            className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-100"
+                                        >
+                                            Accept
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                declineInvite(invite.owner_id)
+                                            }
+                                            className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-100"
+                                        >
+                                            Decline
+                                        </button>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                ) : null}
+
+                {pendingOutgoing.length ? (
+                    <div className="mb-6">
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-red-700/80">
+                            Pending invites you sent
+                        </p>
+                        <ul className="space-y-2">
+                            {pendingOutgoing.map((share) => (
+                                <li
+                                    key={share.id}
+                                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50/50 px-3 py-2"
+                                >
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm font-medium text-zinc-800">
+                                            {share.viewer_name}
+                                        </p>
+                                        <p className="truncate text-xs text-zinc-600">
+                                            {share.viewer_email}
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            removeShare(share.viewer_id)
+                                        }
+                                        className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-medium text-red-700 transition-colors hover:bg-red-100"
+                                    >
+                                        Cancel invite
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                ) : null}
+
+                {acceptedOutgoing.length ? (
+                    <div className="mb-6">
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-red-700/80">
+                            Shared notes members
+                        </p>
+                        <ul
+                            className="space-y-2"
+                            data-testid="profile-notes-sharing-list"
+                        >
+                            {acceptedOutgoing.map((share) => (
+                                <li
+                                    key={share.id}
+                                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50/50 px-3 py-2"
+                                    data-testid={`profile-notes-sharing-item-${share.viewer_id}`}
+                                >
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm font-medium text-zinc-800">
+                                            {share.viewer_name}
+                                        </p>
+                                        <p className="truncate text-xs text-zinc-600">
+                                            {share.viewer_email}
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            removeShare(share.viewer_id)
+                                        }
+                                        className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-medium text-red-700 transition-colors hover:bg-red-100"
+                                        data-testid={`profile-notes-sharing-remove-${share.viewer_id}`}
+                                    >
+                                        Remove member
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                ) : null}
+
+                {noteSharesReceived.length ? (
+                    <div>
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-red-700/80">
+                            Notes shared with you
+                        </p>
+                        <ul className="space-y-2">
+                            {noteSharesReceived.map((share) => (
+                                <li
+                                    key={share.id}
+                                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50/50 px-3 py-2"
+                                >
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm font-medium text-zinc-800">
+                                            {share.owner_name}
+                                        </p>
+                                        <p className="truncate text-xs text-zinc-600">
+                                            {share.owner_email}
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            leaveSharedNotes(share.owner_id)
+                                        }
+                                        className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-100"
+                                    >
+                                        Leave shared notes
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                ) : null}
+
+                {!noteIncomingInvites.length &&
+                !pendingOutgoing.length &&
+                !acceptedOutgoing.length &&
+                !noteSharesReceived.length ? (
                     <p
                         className="text-sm text-zinc-500"
                         data-testid="profile-notes-sharing-empty"
                     >
-                        You are not sharing notes with anyone yet.
+                        No note invitations or shared members yet.
                     </p>
-                )}
+                ) : null}
             </div>
         </section>
     );

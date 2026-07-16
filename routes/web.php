@@ -54,6 +54,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::post('/profile/note-shares', [ProfileController::class, 'storeNoteShare'])->name('profile.note-shares.store');
     Route::delete('/profile/note-shares/{viewer}', [ProfileController::class, 'destroyNoteShare'])->name('profile.note-shares.destroy');
+    Route::patch('/profile/note-shares/{owner}/accept', [ProfileController::class, 'acceptNoteShare'])->name('profile.note-shares.accept');
+    Route::delete('/profile/note-shares/{owner}/decline', [ProfileController::class, 'declineNoteShare'])->name('profile.note-shares.decline');
+    Route::delete('/profile/note-shares/{owner}/leave', [ProfileController::class, 'leaveNoteShare'])->name('profile.note-shares.leave');
     Route::post('/profile/pantry-shares', [ProfileController::class, 'storePantryShare'])->name('profile.pantry-shares.store');
     Route::delete('/profile/pantry-shares/{viewer}', [ProfileController::class, 'destroyPantryShare'])->name('profile.pantry-shares.destroy');
     Route::patch('/profile/pantry-shares/{owner}/accept', [ProfileController::class, 'acceptPantryShare'])->name('profile.pantry-shares.accept');
