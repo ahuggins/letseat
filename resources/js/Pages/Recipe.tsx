@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link, router } from "@inertiajs/react";
 import ReactMarkdown from "react-markdown";
@@ -17,11 +17,94 @@ export default function Recipe({
     sharedNotes = [],
     isSharingNotes = false,
 }: any) {
+    const wakeLockRef = useRef<any>(null);
+    const [isCookModeEnabled, setIsCookModeEnabled] = useState(false);
+    const [cookModeMessage, setCookModeMessage] = useState("");
+
     const recipeName = decodeHtmlEntities(recipe.name || "");
     const ingredients = Array.isArray(recipe.ingredients)
         ? recipe.ingredients
         : [];
     const category = normalizeCategory(recipe.category);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const wakeLockNavigator = navigator as Navigator & {
+            wakeLock?: {
+                request: (type: "screen") => Promise<any>;
+            };
+        };
+
+        const releaseWakeLock = async () => {
+            if (!wakeLockRef.current) {
+                return;
+            }
+
+            try {
+                await wakeLockRef.current.release();
+            } catch {
+                // No action needed if already released by browser.
+            } finally {
+                wakeLockRef.current = null;
+            }
+        };
+
+        const requestWakeLock = async () => {
+            if (!wakeLockNavigator.wakeLock) {
+                setCookModeMessage(
+                    "Cook Mode is on, but this browser cannot prevent screen sleep.",
+                );
+
+                return;
+            }
+
+            try {
+                const sentinel = await wakeLockNavigator.wakeLock.request(
+                    "screen",
+                );
+
+                if (cancelled) {
+                    await sentinel.release();
+
+                    return;
+                }
+
+                wakeLockRef.current = sentinel;
+                setCookModeMessage("Cook Mode is keeping your screen awake.");
+            } catch {
+                setCookModeMessage(
+                    "Cook Mode could not keep your screen awake. Try turning off Low Power Mode.",
+                );
+            }
+        };
+
+        const handleVisibilityChange = async () => {
+            if (!isCookModeEnabled) {
+                return;
+            }
+
+            if (document.visibilityState === "visible") {
+                await requestWakeLock();
+            } else {
+                await releaseWakeLock();
+            }
+        };
+
+        if (isCookModeEnabled) {
+            requestWakeLock();
+            document.addEventListener("visibilitychange", handleVisibilityChange);
+        } else {
+            setCookModeMessage("");
+            releaseWakeLock();
+        }
+
+        return () => {
+            cancelled = true;
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+            releaseWakeLock();
+        };
+    }, [isCookModeEnabled]);
 
     return (
         <AuthenticatedLayout
@@ -48,7 +131,33 @@ export default function Recipe({
                             Back to recipes
                         </Link>
 
-                        <AddedBy recipe={recipe} />
+                        <div className="flex items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    setIsCookModeEnabled((current) => !current)
+                                }
+                                aria-pressed={isCookModeEnabled}
+                                title={
+                                    isCookModeEnabled
+                                        ? "Cook Mode is keeping your screen awake."
+                                        : "Turn on Cook Mode to keep your screen awake."
+                                }
+                                data-testid="recipe-cook-mode-toggle"
+                                className="inline-flex items-center gap-2 rounded-full border border-red-300/80 bg-white/85 px-3 py-1.5 text-sm font-medium text-red-700 shadow-sm backdrop-blur transition-colors hover:bg-red-50 hover:text-red-900"
+                            >
+                                <span
+                                    className={`inline-flex h-2.5 w-2.5 rounded-full ${
+                                        isCookModeEnabled
+                                            ? "bg-emerald-500"
+                                            : "bg-zinc-400"
+                                    }`}
+                                />
+                                Cook Mode
+                            </button>
+
+                            <AddedBy recipe={recipe} />
+                        </div>
                     </div>
 
                     <section

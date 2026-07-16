@@ -34,7 +34,7 @@ export default function Authenticated({
 
     return (
         <div className="min-h-screen bg-white">
-            <nav className="sticky top-0 z-40 border-b border-red-100 bg-white/95 backdrop-blur">
+            <nav className="sticky top-0 z-40 border-b border-red-100 bg-white/85 backdrop-blur-sm">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex h-16 items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
@@ -351,17 +351,6 @@ export default function Authenticated({
             </nav>
 
             <main>{children}</main>
-
-            <footer className="border-t border-red-100 bg-white py-4">
-                <div className="mx-auto max-w-7xl px-4 text-center text-xs text-zinc-600 sm:px-6 lg:px-8">
-                    <Link
-                        href={route("privacy-policy")}
-                        className="font-medium text-red-700 hover:text-red-800"
-                    >
-                        Privacy Policy
-                    </Link>
-                </div>
-            </footer>
         </div>
     );
 }

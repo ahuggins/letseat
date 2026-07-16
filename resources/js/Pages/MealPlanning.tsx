@@ -295,7 +295,7 @@ export default function MealPlanning({
                 </div>
 
                 <div
-                    className="fixed inset-x-0 bottom-0 z-40 border-t border-red-200/80 bg-white/95 backdrop-blur"
+                    className="fixed inset-x-0 bottom-0 z-40 border-t border-red-200/80 bg-white/85 backdrop-blur-sm"
                     data-testid="meal-planning-sticky-saved-plan"
                 >
                     <div className="mx-auto flex h-[88px] max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
