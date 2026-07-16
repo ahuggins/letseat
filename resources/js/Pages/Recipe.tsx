@@ -20,6 +20,7 @@ export default function Recipe({
     const wakeLockRef = useRef<any>(null);
     const [isCookModeEnabled, setIsCookModeEnabled] = useState(false);
     const [cookModeMessage, setCookModeMessage] = useState("");
+    const [isMade, setIsMade] = useState(Boolean(recipe?.is_made));
 
     const recipeName = decodeHtmlEntities(recipe.name || "");
     const ingredients = Array.isArray(recipe.ingredients)
@@ -111,6 +112,32 @@ export default function Recipe({
         };
     }, [isCookModeEnabled]);
 
+    function toggleMade() {
+        const url = route(isMade ? "recipes.unmade" : "recipes.made", recipe.id);
+
+        if (isMade) {
+            router.delete(url, {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                onSuccess: () => setIsMade(false),
+            });
+
+            return;
+        }
+
+        router.post(
+            url,
+            {},
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                onSuccess: () => setIsMade(true),
+            },
+        );
+    }
+
     return (
         <AuthenticatedLayout
             user={auth.user}
@@ -137,6 +164,21 @@ export default function Recipe({
                         </Link>
 
                         <div className="flex items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={toggleMade}
+                                data-testid="recipe-made-toggle"
+                                className={
+                                    "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium shadow-sm backdrop-blur transition " +
+                                    (isMade
+                                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                        : "border-zinc-200 bg-white/95 text-zinc-600 hover:bg-zinc-100")
+                                }
+                            >
+                                <span className="text-base leading-none">✓</span>
+                                Made this
+                            </button>
+
                             <button
                                 type="button"
                                 onClick={() =>

@@ -127,6 +127,15 @@ Route::get('/my-makes', fn (Request $request) => $renderRecipeIndex($request, fa
     ->name('makes');
 
 Route::get('/recipe/{recipe:slug}', function (Request $request, NewRecipe $recipe) {
+    $viewerId = (int) $request->user()->id;
+
+    $recipeWithViewerState = NewRecipe::query()
+        ->whereKey($recipe->id)
+        ->withExists([
+            'madeBy as is_made' => fn ($builder) => $builder->where('users.id', $viewerId),
+        ])
+        ->first() ?? $recipe;
+
     $privateNotes = $recipe->privateNotes()
         ->where('user_id', $request->user()->id)
         ->orderBy('created_at')
@@ -145,7 +154,7 @@ Route::get('/recipe/{recipe:slug}', function (Request $request, NewRecipe $recip
         ->get();
 
     return Inertia::render('Recipe', [
-        'recipe' => $recipe,
+        'recipe' => $recipeWithViewerState,
         'privateNotes' => $privateNotes,
         'sharedNotes' => $sharedNotes,
         'isSharingNotes' => $isSharingNotes,
