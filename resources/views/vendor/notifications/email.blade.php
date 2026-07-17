@@ -5,7 +5,7 @@
             <tr>
                 <td style="width: 74px; vertical-align: middle;">
                     <span style="display: inline-block; width: 68px; height: 68px; border-radius: 12px; border: 1px solid #fee2e2; background: #ffffff; overflow: hidden;">
-                        <img src="{{ $message->embed(public_path('img/icon-128.png')) }}" width="68" height="68" alt="LetsEat logo" style="display: block; width: 68px; height: 68px;" />
+                        <img src="{{ public_path('img/icon-128.png') }}" width="68" height="68" alt="LetsEat logo" style="display: block; width: 68px; height: 68px;" />
                     </span>
                 </td>
                 <td style="vertical-align: middle; font-size: 18px; letter-spacing: 0.04em; text-transform: uppercase; color: #b91c1c; font-weight: 500;">
