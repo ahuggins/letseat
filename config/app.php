@@ -1,6 +1,13 @@
 <?php
 
+use Resend\Laravel\ResendServiceProvider;
+
 return [
+
+    'providers' => [
+        // ... other providers
+        ResendServiceProvider::class,
+    ],
 
     /*
     |--------------------------------------------------------------------------
